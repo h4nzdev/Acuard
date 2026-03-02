@@ -6,7 +6,6 @@ import { PenTool, BrainCircuit, ShieldCheck, Loader2, ArrowRight } from "lucide-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { studentWritingFingerprintBaseline } from "@/ai/flows/student-writing-fingerprint-baseline"
 import { toast } from "@/hooks/use-toast"
 import { saveStudentBaseline, getStudentBaseline } from "@/lib/storage"
 
@@ -48,10 +47,10 @@ export default function BaselineTool() {
   }
 
   const handleSubmit = async () => {
-    if (text.length < 100) { // Reduced threshold for testing
+    if (text.length < 50) {
       toast({
         title: "Sample too short",
-        description: "Please write at least 100 characters for testing.",
+        description: "Please write at least 50 characters for testing.",
         variant: "destructive"
       })
       return
@@ -60,28 +59,37 @@ export default function BaselineTool() {
     if (!studentId) return
 
     setIsSubmitting(true)
-    try {
-      const result = await studentWritingFingerprintBaseline({
-        writingSample: text,
-        typingSpeedWpm: wpm || 45 // Fallback WPM for paste test
-      })
-      
-      saveStudentBaseline(studentId, result)
-      setFingerprint(result)
-      
-      toast({
-        title: "Fingerprint Created",
-        description: "Your writing baseline has been successfully established."
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate fingerprint. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
+    
+    // Simulate AI processing delay
+    setTimeout(() => {
+      try {
+        // Mock fingerprint output for testing phase
+        const mockResult = {
+          typingSpeedWpm: wpm || 45,
+          writingStyleSummary: "Analytical and concise with a preference for active voice. The writing shows a structured approach to technical topics.",
+          vocabularyAnalysis: "Demonstrates a robust vocabulary with specific academic terminology. Usage of technical terms is consistent and accurate.",
+          sentenceStructureAnalysis: "Prefers medium-length complex sentences. Shows variety in opening phrases and consistent punctuation patterns.",
+          sentimentAnalysis: "Objective and professional tone. High degree of certainty in expressed opinions.",
+          potentialAIIndicators: ["None detected - natural variation in keystroke intervals observed."]
+        }
+        
+        saveStudentBaseline(studentId, mockResult)
+        setFingerprint(mockResult)
+        
+        toast({
+          title: "Baseline Established (Mock)",
+          description: "Your writing baseline has been successfully recorded using simulated analysis."
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to generate fingerprint. Please try again.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+    }, 1500)
   }
 
   if (fingerprint) {
@@ -157,7 +165,7 @@ export default function BaselineTool() {
               <CardTitle className="font-headline">Prompt: Technology in Education</CardTitle>
               <CardDescription>
                 Share your thoughts on how digital tools have changed the way you learn. 
-                Write at least 100 characters for testing. **Copy-paste allowed for testing.**
+                Write at least 50 characters for testing. **Copy-paste allowed for testing.**
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,11 +181,11 @@ export default function BaselineTool() {
               />
               <div className="mt-6 flex justify-between items-center">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Progress: <span className={text.length >= 100 ? "text-green-600" : "text-primary"}>{text.length}</span> / 100 characters
+                  Progress: <span className={text.length >= 50 ? "text-green-600" : "text-primary"}>{text.length}</span> / 50 characters
                 </div>
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={isSubmitting || text.length < 100}
+                  disabled={isSubmitting || text.length < 50}
                   className="px-8 bg-accent hover:bg-accent/90 shadow-lg"
                 >
                   {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating Fingerprint...</> : "Submit Baseline"}
