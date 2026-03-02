@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo } from "lucide-react"
+import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo, CheckCircle2, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import Link from "next/link"
 
 export default function ActiveAssessment() {
   const params = useParams()
@@ -20,6 +21,8 @@ export default function ActiveAssessment() {
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [finalScore, setFinalScore] = useState<{ earned: number, total: number } | null>(null)
   const [warningCount, setWarningCount] = useState(0)
   const [riskScore, setRiskScore] = useState("Normal")
   const [isMounted, setIsMounted] = useState(false)
@@ -76,6 +79,11 @@ export default function ActiveAssessment() {
       saveSession(newSession)
     } else if (existing.status === 'Locked') {
       setWarningCount(3)
+    } else if (existing.status === 'Completed') {
+      setIsSubmitted(true)
+      if (existing.score !== undefined) {
+        setFinalScore({ earned: existing.score, total: existing.totalPossiblePoints || 0 })
+      }
     } else {
       setWarningCount(existing.warningCount)
       setRiskScore(existing.riskScore)
@@ -93,6 +101,20 @@ export default function ActiveAssessment() {
   const handleSubmit = () => {
     setIsSubmitting(true)
     
+    // Calculate Score
+    let earned = 0
+    let total = 0
+    
+    assessment.questions.forEach(q => {
+      total += q.points
+      const studentAnswer = (answers[q.id] || "").trim().toLowerCase()
+      const correctAnswer = (q.correctAnswer || "").trim().toLowerCase()
+      
+      if (studentAnswer === correctAnswer && studentAnswer !== "") {
+        earned += q.points
+      }
+    })
+
     // Update session to completed
     const sessions = getSessions()
     const current = sessions.find(s => s.assessmentId === assessment.id && s.studentId === studentId)
@@ -100,17 +122,62 @@ export default function ActiveAssessment() {
       updateSession({
         ...current,
         status: 'Completed',
-        lastActive: new Date().toLocaleTimeString()
+        lastActive: new Date().toLocaleTimeString(),
+        score: earned,
+        totalPossiblePoints: total
       })
     }
 
     setTimeout(() => {
+      setFinalScore({ earned, total })
+      setIsSubmitted(true)
+      setIsSubmitting(false)
       toast({
         title: "Assessment Submitted",
-        description: "Your work has been securely uploaded and flagged for review."
+        description: "Your work has been securely uploaded and graded."
       })
-      router.push('/student/dashboard')
     }, 1500)
+  }
+
+  if (isSubmitted && finalScore) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh] p-6 animate-in fade-in zoom-in duration-500">
+        <Card className="max-w-md w-full text-center shadow-2xl border-green-200">
+          <CardHeader>
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-green-100 rounded-full">
+                <Trophy className="w-16 h-16 text-green-600" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-headline font-bold text-slate-900">Assessment Complete</CardTitle>
+            <CardDescription className="text-base">
+              Your submission has been verified and recorded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1">Your Final Score</p>
+              <div className="flex items-baseline justify-center gap-1">
+                <span className="text-5xl font-headline font-bold text-primary">{finalScore.earned}</span>
+                <span className="text-xl text-muted-foreground">/ {finalScore.total}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {Math.round((finalScore.earned / finalScore.total) * 100)}% Grade Achieved
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Button className="w-full h-12 font-bold bg-primary shadow-lg" asChild>
+                <Link href="/student/history">View Detailed Results</Link>
+              </Button>
+              <Button variant="ghost" className="w-full h-11 text-slate-600" asChild>
+                <Link href="/student/dashboard">Return to Dashboard</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (warningCount >= 3) {

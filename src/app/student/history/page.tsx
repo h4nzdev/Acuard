@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -12,7 +11,8 @@ import {
   ExternalLink,
   ChevronRight,
   FileText,
-  Activity
+  Activity,
+  Trophy
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -99,6 +99,7 @@ export default function StudentHistory() {
             <TableRow>
               <TableHead className="font-bold py-5 text-xs uppercase tracking-wider">Assessment</TableHead>
               <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+              <TableHead className="font-bold text-xs uppercase tracking-wider">Score</TableHead>
               <TableHead className="font-bold text-xs uppercase tracking-wider">Integrity Risk</TableHead>
               <TableHead className="font-bold text-xs uppercase tracking-wider">Warnings</TableHead>
               <TableHead className="font-bold text-xs uppercase tracking-wider">Last Active</TableHead>
@@ -121,6 +122,16 @@ export default function StudentHistory() {
                     )}>
                       {session.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {session.score !== undefined ? (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-3.5 h-3.5 text-accent" />
+                        <span className="font-bold text-slate-800">{session.score} / {session.totalPossiblePoints}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">--</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -152,7 +163,7 @@ export default function StudentHistory() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-64 text-center">
+                <TableCell colSpan={7} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <div className="p-4 bg-slate-50 rounded-full">
                       <History className="w-8 h-8 text-slate-200" />

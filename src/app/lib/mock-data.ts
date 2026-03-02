@@ -42,6 +42,8 @@ export interface StudentSession {
   pasteCount: number;
   tabSwitchCount: number;
   violations: string[];
+  score?: number;
+  totalPossiblePoints?: number;
 }
 
 export const MOCK_ASSESSMENTS: Assessment[] = [];
