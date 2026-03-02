@@ -1,4 +1,3 @@
-
 import { Assessment, StudentSession, Student } from "@/app/lib/mock-data";
 
 const STORAGE_KEYS = {
@@ -47,6 +46,12 @@ export const getAssessments = (): Assessment[] => {
 export const saveAssessment = (assessment: Assessment) => {
   const current = getAssessments();
   const updated = [...current, assessment];
+  localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(updated));
+};
+
+export const updateAssessment = (updatedAssessment: Assessment) => {
+  const current = getAssessments();
+  const updated = current.map(a => a.id === updatedAssessment.id ? updatedAssessment : a);
   localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(updated));
 };
 
