@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -109,8 +108,14 @@ export default function ActiveAssessment() {
       const studentAnswer = (answers[q.id] || "").trim().toLowerCase()
       const correctAnswer = (q.correctAnswer || "").trim().toLowerCase()
       
-      if (studentAnswer === correctAnswer && studentAnswer !== "") {
-        earned += q.points
+      // Auto-grading logic (skip for Essays which are qualitative)
+      if (q.type !== 'Essay') {
+        if (studentAnswer === correctAnswer && studentAnswer !== "") {
+          earned += q.points
+        }
+      } else {
+        // Essays currently don't contribute to auto-grade points but are captured for review
+        // One could potentially give full points for any valid attempt if required
       }
     })
 
@@ -150,7 +155,7 @@ export default function ActiveAssessment() {
       setIsSubmitting(false)
       toast({
         title: "Assessment Submitted",
-        description: "Your work has been securely uploaded and graded."
+        description: "Your work has been securely uploaded."
       })
     }, 1500)
   }
@@ -172,7 +177,7 @@ export default function ActiveAssessment() {
           </CardHeader>
           <CardContent className="space-y-8">
             <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1">Your Final Score</p>
+              <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1">Estimated Grade (Auto)</p>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-5xl font-headline font-bold text-primary">{finalScore.earned}</span>
                 <span className="text-xl text-muted-foreground">/ {finalScore.total}</span>

@@ -2,7 +2,7 @@ export interface Question {
   id: string;
   text: string;
   points: number;
-  type: 'Questionnaire' | 'Text Area' | 'Multiple Choice';
+  type: 'Questionnaire' | 'Text Area' | 'Multiple Choice' | 'Essay';
   allowCopyPaste: boolean;
   correctAnswer: string;
   choices?: string[];

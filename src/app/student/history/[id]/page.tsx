@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -73,7 +72,7 @@ export default function AssessmentResultDetails() {
     : 0
 
   // Check if writing style analysis is applicable (contains text-based questions)
-  const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area') ?? false
+  const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
 
   // Mock match percentage based on risk level
   const styleMatchPercentage = session.riskScore === 'Normal' ? 96 : session.riskScore === 'Suspicious' ? 54 : 18
@@ -288,18 +287,20 @@ export default function AssessmentResultDetails() {
                         </div>
                       )}
 
-                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-[10px] font-black uppercase text-primary tracking-widest">Correct Answer</span>
+                      {q.type !== 'Essay' && (
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-[10px] font-black uppercase text-primary tracking-widest">Correct Answer</span>
+                          </div>
+                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{q.correctAnswer}</p>
                         </div>
-                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{q.correctAnswer}</p>
-                      </div>
+                      )}
                     </div>
                     
                     <div className="flex flex-col items-end gap-3 shrink-0">
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase">
-                        {q.type === 'Text Area' ? <Type className="w-3 h-3" /> : q.type === 'Multiple Choice' ? <ListTodo className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
+                        {q.type === 'Text Area' ? <Type className="w-3 h-3" /> : q.type === 'Multiple Choice' ? <ListTodo className="w-3 h-3" /> : q.type === 'Essay' ? <Type className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
                         {q.type}
                       </div>
                     </div>

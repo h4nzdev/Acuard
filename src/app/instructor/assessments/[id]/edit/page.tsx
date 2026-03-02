@@ -17,7 +17,8 @@ import {
   FileText,
   Copy,
   CheckCircle2,
-  ListTodo
+  ListTodo,
+  Type
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -163,7 +164,8 @@ function EditAssessmentForm() {
     }
 
     const incompleteQuestion = questions.find(q => {
-      if (!q.text || !q.correctAnswer) return true
+      if (!q.text) return true
+      if (q.type !== 'Essay' && !q.correctAnswer) return true
       if (q.type === 'Multiple Choice') {
         if (q.choiceType === 'Custom' && q.choices?.some(c => !c)) return true
       }
@@ -173,7 +175,7 @@ function EditAssessmentForm() {
     if (incompleteQuestion) {
       toast({
         title: "Incomplete Questions",
-        description: "Every question must have a question text and a final correct answer. Check Multiple Choice options.",
+        description: "Every question must have text and a correct answer (except essays). Check Multiple Choice options.",
         variant: "destructive"
       })
       return
@@ -467,49 +469,51 @@ function EditAssessmentForm() {
                           </div>
                         )}
 
-                        <div className="space-y-2">
-                          <Label className="text-xs uppercase font-bold text-primary flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3 h-3" /> Final Correct Answer
-                          </Label>
-                          {q.type === 'Multiple Choice' ? (
-                            <RadioGroup 
-                              value={q.correctAnswer} 
-                              onValueChange={(val) => handleUpdateQuestion(q.id, { correctAnswer: val })}
-                              className="flex flex-wrap gap-4"
-                            >
-                              {q.choiceType === 'True/False' ? (
-                                <>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="True" id={`edit-correct-true-${q.id}`} />
-                                    <Label htmlFor={`edit-correct-true-${q.id}`} className="text-xs font-medium">True</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="False" id={`edit-correct-false-${q.id}`} />
-                                    <Label htmlFor={`edit-correct-false-${q.id}`} className="text-xs font-medium">False</Label>
-                                  </div>
-                                </>
-                              ) : (
-                                [0, 1, 2, 3].map((idx) => {
-                                  const label = String.fromCharCode(65 + idx)
-                                  const value = q.choices?.[idx] || label
-                                  return (
-                                    <div key={idx} className="flex items-center space-x-2">
-                                      <RadioGroupItem value={value} id={`edit-correct-${q.id}-${idx}`} disabled={!value} />
-                                      <Label htmlFor={`edit-correct-${q.id}-${idx}`} className="text-xs font-medium">{label}</Label>
+                        {q.type !== 'Essay' && (
+                          <div className="space-y-2">
+                            <Label className="text-xs uppercase font-bold text-primary flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3 h-3" /> Final Correct Answer
+                            </Label>
+                            {q.type === 'Multiple Choice' ? (
+                              <RadioGroup 
+                                value={q.correctAnswer} 
+                                onValueChange={(val) => handleUpdateQuestion(q.id, { correctAnswer: val })}
+                                className="flex flex-wrap gap-4"
+                              >
+                                {q.choiceType === 'True/False' ? (
+                                  <>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="True" id={`edit-correct-true-${q.id}`} />
+                                      <Label htmlFor={`edit-correct-true-${q.id}`} className="text-xs font-medium">True</Label>
                                     </div>
-                                  )
-                                })
-                              )}
-                            </RadioGroup>
-                          ) : (
-                            <Textarea 
-                              placeholder="Enter the correct reference answer for this question..." 
-                              value={q.correctAnswer}
-                              onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
-                              className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
-                            />
-                          )}
-                        </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="False" id={`edit-correct-false-${q.id}`} />
+                                      <Label htmlFor={`edit-correct-false-${q.id}`} className="text-xs font-medium">False</Label>
+                                    </div>
+                                  </>
+                                ) : (
+                                  [0, 1, 2, 3].map((idx) => {
+                                    const label = String.fromCharCode(65 + idx)
+                                    const value = q.choices?.[idx] || label
+                                    return (
+                                      <div key={idx} className="flex items-center space-x-2">
+                                        <RadioGroupItem value={value} id={`edit-correct-${q.id}-${idx}`} disabled={!value} />
+                                        <Label htmlFor={`edit-correct-${q.id}-${idx}`} className="text-xs font-medium">{label}</Label>
+                                      </div>
+                                    )
+                                  })
+                                )}
+                              </RadioGroup>
+                            ) : (
+                              <Textarea 
+                                placeholder="Enter the correct reference answer for this question..." 
+                                value={q.correctAnswer}
+                                onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
+                                className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
+                              />
+                            )}
+                          </div>
+                        )}
                         
                         <div className="grid grid-cols-2 gap-6 pt-4 border-t">
                           <div className="space-y-3">
@@ -531,6 +535,12 @@ function EditAssessmentForm() {
                                 <RadioGroupItem value="Multiple Choice" id={`edit-q-type-m-${q.id}`} />
                                 <Label htmlFor={`edit-q-type-m-${q.id}`} className="font-medium cursor-pointer flex items-center gap-1.5">
                                   <ListTodo className="w-3.5 h-3.5" /> Multiple Choice
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Essay" id={`edit-q-type-e-${q.id}`} />
+                                <Label htmlFor={`edit-q-type-e-${q.id}`} className="font-medium cursor-pointer flex items-center gap-1.5">
+                                  <Type className="w-3.5 h-3.5" /> Essay
                                 </Label>
                               </div>
                             </RadioGroup>
