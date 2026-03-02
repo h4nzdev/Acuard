@@ -25,6 +25,12 @@ export const saveAssessment = (assessment: Assessment) => {
   localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(updated));
 };
 
+export const deleteAssessment = (id: string) => {
+  const current = getAssessments();
+  const updated = current.filter(a => a.id !== id);
+  localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(updated));
+};
+
 export const getSessions = (): StudentSession[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(STORAGE_KEYS.SESSIONS);
