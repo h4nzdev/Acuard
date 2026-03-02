@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -102,7 +103,8 @@ export default function ActiveAssessment() {
     let earned = 0
     let total = 0
     
-    assessment.questions.forEach(q => {
+    const questions = assessment.questions || []
+    questions.forEach(q => {
       total += q.points
       const studentAnswer = (answers[q.id] || "").trim().toLowerCase()
       const correctAnswer = (q.correctAnswer || "").trim().toLowerCase()
@@ -111,6 +113,11 @@ export default function ActiveAssessment() {
         earned += q.points
       }
     })
+
+    // Safety fallback for total points
+    if (total === 0 && questions.length > 0) {
+      total = questions.length * 10
+    }
 
     const sessions = getSessions()
     const current = sessions.find(s => s.assessmentId === assessment.id && s.studentId === studentId)
@@ -171,13 +178,13 @@ export default function ActiveAssessment() {
                 <span className="text-xl text-muted-foreground">/ {finalScore.total}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {Math.round((finalScore.earned / finalScore.total) * 100)}% Grade Achieved
+                {finalScore.total > 0 ? Math.round((finalScore.earned / finalScore.total) * 100) : 0}% Grade Achieved
               </p>
             </div>
             
             <div className="space-y-3">
               <Button className="w-full h-12 font-bold bg-primary shadow-lg" asChild>
-                <Link href="/student/history">View Detailed Results</Link>
+                <Link href={`/student/history/${assessment.id}`}>View Detailed Results</Link>
               </Button>
               <Button variant="ghost" className="w-full h-11 text-slate-600" asChild>
                 <Link href="/student/dashboard">Return to Dashboard</Link>

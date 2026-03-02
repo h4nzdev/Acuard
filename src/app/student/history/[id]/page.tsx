@@ -67,7 +67,7 @@ export default function AssessmentResultDetails() {
     )
   }
 
-  const scorePercentage = session.score !== undefined && session.totalPossiblePoints 
+  const scorePercentage = session.score !== undefined && session.totalPossiblePoints && session.totalPossiblePoints > 0
     ? Math.round((session.score / session.totalPossiblePoints) * 100)
     : 0
 
@@ -101,8 +101,8 @@ export default function AssessmentResultDetails() {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-1">
-              <span className="text-5xl font-headline font-bold text-primary">{session.score || 0}</span>
-              <span className="text-xl text-muted-foreground font-medium">/ {session.totalPossiblePoints || 0}</span>
+              <span className="text-5xl font-headline font-bold text-primary">{session.score ?? 0}</span>
+              <span className="text-xl text-muted-foreground font-medium">/ {session.totalPossiblePoints ?? 0}</span>
             </div>
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
