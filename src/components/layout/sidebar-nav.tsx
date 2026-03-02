@@ -60,10 +60,7 @@ export function SidebarNav({ role }: SidebarNavProps) {
         )}
       >
         <div className="p-4 flex flex-col h-full">
-          <div className={cn(
-            "flex flex-col gap-4 mb-8",
-            isExpanded ? "items-stretch" : "items-center"
-          )}>
+          <div className="flex flex-col gap-4 mb-8">
             <div className={cn(
               "flex items-center min-h-[40px]",
               isExpanded ? "justify-between" : "justify-center"
@@ -77,35 +74,29 @@ export function SidebarNav({ role }: SidebarNavProps) {
                 <ShieldAlert className="w-8 h-8 text-accent" />
               )}
               
-              {isExpanded && !isHovered && (
+              {/* Toggle button appears only when the sidebar is visually expanded (either locked or hovered) */}
+              {isExpanded && (
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsCollapsed(true);
+                    if (isCollapsed) {
+                      // Lock into expanded state
+                      setIsCollapsed(false);
+                      setIsHovered(false);
+                    } else {
+                      // Lock into collapsed state
+                      setIsCollapsed(true);
+                      setIsHovered(false);
+                    }
                   }}
                   className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all shrink-0"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
                 </Button>
               )}
             </div>
-
-            {!isExpanded && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCollapsed(false);
-                  setIsHovered(false);
-                }}
-                className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            )}
           </div>
           
           <nav className="space-y-2 flex-1">
