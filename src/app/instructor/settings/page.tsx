@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -29,19 +28,24 @@ import {
 } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
 import { getGlobalSettings, saveGlobalSettings, GlobalSettings } from "@/lib/storage"
+import { cn } from "@/lib/utils"
 
 export default function PoliciesSettings() {
   const [settings, setSettings] = useState<GlobalSettings | null>(null)
+  const [originalSettingsJson, setOriginalSettingsJson] = useState<string>("")
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setSettings(getGlobalSettings())
+    const s = getGlobalSettings()
+    setSettings(s)
+    setOriginalSettingsJson(JSON.stringify(s))
     setIsMounted(true)
   }, [])
 
   const handleSave = () => {
     if (settings) {
       saveGlobalSettings(settings)
+      setOriginalSettingsJson(JSON.stringify(settings))
       toast({
         title: "Settings Saved",
         description: "Institutional integrity policies have been updated successfully.",
@@ -51,6 +55,8 @@ export default function PoliciesSettings() {
 
   if (!isMounted || !settings) return null
 
+  const hasChanges = JSON.stringify(settings) !== originalSettingsJson
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex justify-between items-center">
@@ -58,9 +64,18 @@ export default function PoliciesSettings() {
           <h2 className="text-3xl font-headline font-bold text-slate-900">Integrity Policies</h2>
           <p className="text-muted-foreground">Configure institutional defaults and analysis thresholds.</p>
         </div>
-        <Button onClick={handleSave} className="bg-primary gap-2">
+        <Button 
+          onClick={handleSave} 
+          disabled={!hasChanges}
+          className={cn(
+            "gap-2 transition-all duration-300", 
+            hasChanges 
+              ? "bg-primary hover:bg-primary/90 shadow-md" 
+              : "bg-slate-200 text-slate-400 cursor-not-allowed hover:bg-slate-200"
+          )}
+        >
           <Save className="w-4 h-4" />
-          Save Changes
+          {hasChanges ? "Save Changes" : "No Changes"}
         </Button>
       </div>
 

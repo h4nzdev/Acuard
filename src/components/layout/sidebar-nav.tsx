@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -20,7 +19,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getGlobalSettings, GlobalSettings, getStudentBaseline } from "@/lib/storage"
+import { getGlobalSettings, getStudentBaseline } from "@/lib/storage"
 
 interface SidebarNavProps {
   role: 'student' | 'instructor'
@@ -30,26 +29,28 @@ export function SidebarNav({ role }: SidebarNavProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [settings, setSettings] = useState<GlobalSettings | null>(null)
+  const [requireBaseline, setRequireBaseline] = useState<boolean>(true)
   const [hasBaseline, setHasBaseline] = useState(false)
 
   useEffect(() => {
-    setSettings(getGlobalSettings())
+    const settings = getGlobalSettings()
+    setRequireBaseline(settings.requireBaseline)
+    
     const userStr = localStorage.getItem('ag_current_user')
     if (userStr) {
       const user = JSON.parse(userStr)
       setHasBaseline(!!getStudentBaseline(user.id))
     }
-  }, [])
+  }, [pathname]) // Refresh on navigation
 
   const isExpanded = !isCollapsed || isHovered
 
-  // Determine baseline link visibility: 
-  // - Hide if it's mandatory (handled in Assessment page)
-  // - Hide if toggle is OFF (per "hide/disabled" request)
-  // - Show only if optional (OFF) AND not yet completed? Actually, the prompt says "if its off student can write baseline based on sidebar", but then "it is visible but off then hide/disabled".
-  // Let's hide it from sidebar if it's mandatory (ON) because it's in the Assessment page now.
-  // And if it's OFF, we hide it as well to follow "hide/disabled" if off.
+  // Writing Baseline sidebar logic:
+  // - Show only for students.
+  // - Show only if requireBaseline is FALSE (instructor toggled it OFF in settings).
+  // - Hide if the student has already completed their baseline (hasBaseline is TRUE).
+  const showWritingBaseline = role === 'student' && !requireBaseline && !hasBaseline
+
   const links = role === 'instructor' ? [
     { href: "/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/instructor/monitoring", label: "Live Monitoring", icon: Activity },
@@ -58,9 +59,7 @@ export function SidebarNav({ role }: SidebarNavProps) {
     { href: "/instructor/settings", label: "Policies", icon: Settings },
   ] : [
     { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    // Show baseline in sidebar ONLY if it's NOT mandatory (optional mode) and not yet done.
-    // If it's mandatory (settings.requireBaseline is true), it's handled in the assessments list.
-    ...(!settings?.requireBaseline && !hasBaseline ? [{ href: "/student/baseline", label: "Writing Baseline", icon: PenTool }] : []),
+    ...(showWritingBaseline ? [{ href: "/student/baseline", label: "Writing Baseline", icon: PenTool }] : []),
     { href: "/student/assessments", label: "My Assessments", icon: FileText },
     { href: "/student/history", label: "History", icon: History },
   ]
