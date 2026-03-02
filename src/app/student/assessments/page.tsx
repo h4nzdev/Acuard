@@ -3,32 +3,99 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { FileText, Clock, ChevronRight, AlertCircle, ShieldCheck } from "lucide-react"
+import { FileText, Clock, ChevronRight, AlertCircle, ShieldCheck, PenTool, BrainCircuit } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { getAssessments, getSessions } from "@/lib/storage"
+import { getAssessments, getSessions, getStudentBaseline } from "@/lib/storage"
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
+import { useRouter } from "next/navigation"
 
 export default function StudentAssessments() {
+  const router = useRouter()
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [sessions, setSessions] = useState<StudentSession[]>([])
   const [isMounted, setIsMounted] = useState(false)
   const [studentId, setStudentId] = useState<string | null>(null)
+  const [hasBaseline, setHasBaseline] = useState<boolean>(true)
 
   useEffect(() => {
     const userStr = localStorage.getItem('ag_current_user')
     if (userStr) {
       const user = JSON.parse(userStr)
       setStudentId(user.id)
+      
+      // Check baseline
+      const baseline = getStudentBaseline(user.id)
+      setHasBaseline(!!baseline)
+    } else {
+      router.push('/login')
     }
     
     setAssessments(getAssessments())
     setSessions(getSessions())
     setIsMounted(true)
-  }, [])
+  }, [router])
 
   if (!isMounted) return null
+
+  // If no baseline, show the baseline requirement gateway
+  if (!hasBaseline) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500 py-12">
+        <Card className="border-none shadow-2xl ring-1 ring-slate-200 overflow-hidden">
+          <div className="h-2 bg-accent" />
+          <CardContent className="p-12 text-center space-y-8">
+            <div className="flex justify-center">
+              <div className="w-24 h-24 bg-accent/10 rounded-full flex items-center justify-center relative">
+                <PenTool className="w-10 h-10 text-accent" />
+                <div className="absolute -top-1 -right-1 bg-white p-1.5 rounded-full shadow-md">
+                  <AlertCircle className="w-5 h-5 text-destructive" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <h2 className="text-4xl font-headline font-bold text-slate-900">Baseline Required</h2>
+              <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+                To maintain academic integrity, you must establish your unique writing fingerprint before you can access course assessments.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-4 text-left">
+              <div className="p-4 bg-slate-50 rounded-xl border flex gap-4">
+                <div className="p-2 bg-white rounded-lg shadow-sm shrink-0">
+                  <BrainCircuit className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-800">Biometric Analysis</h4>
+                  <p className="text-xs text-muted-foreground">Establishes typing cadence and syntactic patterns.</p>
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl border flex gap-4">
+                <div className="p-2 bg-white rounded-lg shadow-sm shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-800">Identity Protection</h4>
+                  <p className="text-xs text-muted-foreground">Verifies your work is genuinely yours in future tests.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8">
+              <Button size="lg" className="h-14 px-12 text-lg font-bold bg-accent hover:bg-accent/90 shadow-xl rounded-full" asChild>
+                <Link href="/student/baseline">
+                  Establish Writing Baseline
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -68,7 +135,7 @@ export default function StudentAssessments() {
                     assessment.policy === 'Allowed but Monitored' ? 'border-primary text-primary' :
                     'border-green-600 text-green-600'
                   }`}>
-                    {assessment.policy}
+                    {assessment.policy} Policy
                   </Badge>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between pt-4 border-t">

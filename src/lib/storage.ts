@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   SESSIONS: 'ag_sessions',
   STUDENTS: 'ag_students',
   SETTINGS: 'ag_settings',
+  BASELINES: 'ag_baselines',
 };
 
 export interface GlobalSettings {
@@ -69,7 +70,6 @@ export const getSessions = (): StudentSession[] => {
 
 export const saveSession = (session: StudentSession) => {
   const current = getSessions();
-  // Ensure we don't duplicate sessions for same student/assessment
   const exists = current.findIndex(s => s.studentId === session.studentId && s.assessmentId === session.assessmentId);
   let updated;
   if (exists >= 0) {
@@ -102,7 +102,6 @@ export const deleteSession = (studentId: string, assessmentId?: string) => {
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
 };
 
-// Student Storage
 export const getStudents = (): Student[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(STORAGE_KEYS.STUDENTS);
@@ -129,7 +128,6 @@ export const deleteStudent = (id: string) => {
   localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
 };
 
-// Global Settings Storage
 export const getGlobalSettings = (): GlobalSettings => {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
   const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
@@ -146,4 +144,32 @@ export const getGlobalSettings = (): GlobalSettings => {
 
 export const saveGlobalSettings = (settings: GlobalSettings) => {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+};
+
+// Baseline Fingerprint Storage
+export const getStudentBaseline = (studentId: string): any | null => {
+  if (typeof window === 'undefined') return null;
+  const stored = localStorage.getItem(STORAGE_KEYS.BASELINES);
+  if (!stored) return null;
+  try {
+    const baselines = JSON.parse(stored);
+    return baselines[studentId] || null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const saveStudentBaseline = (studentId: string, fingerprint: any) => {
+  if (typeof window === 'undefined') return;
+  const stored = localStorage.getItem(STORAGE_KEYS.BASELINES);
+  let baselines: Record<string, any> = {};
+  if (stored) {
+    try {
+      baselines = JSON.parse(stored);
+    } catch (e) {
+      baselines = {};
+    }
+  }
+  baselines[studentId] = fingerprint;
+  localStorage.setItem(STORAGE_KEYS.BASELINES, JSON.stringify(baselines));
 };

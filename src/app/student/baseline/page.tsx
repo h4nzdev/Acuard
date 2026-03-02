@@ -1,21 +1,41 @@
+
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { PenTool, BrainCircuit, ShieldCheck, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { PenTool, BrainCircuit, ShieldCheck, Loader2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { studentWritingFingerprintBaseline } from "@/ai/flows/student-writing-fingerprint-baseline"
 import { toast } from "@/hooks/use-toast"
+import { saveStudentBaseline, getStudentBaseline } from "@/lib/storage"
 
 export default function BaselineTool() {
+  const router = useRouter()
   const [text, setText] = useState("")
   const [startTime, setStartTime] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fingerprint, setFingerprint] = useState<any>(null)
   const [wpm, setWpm] = useState(0)
+  const [studentId, setStudentId] = useState<string | null>(null)
 
-  // Track WPM live
+  useEffect(() => {
+    const userStr = localStorage.getItem('ag_current_user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      setStudentId(user.id)
+      
+      // Check if already has baseline
+      const existing = getStudentBaseline(user.id)
+      if (existing) {
+        setFingerprint(existing)
+      }
+    } else {
+      router.push('/login')
+    }
+  }, [router])
+
   useEffect(() => {
     if (!startTime || !text) return
     const elapsedMinutes = (Date.now() - startTime) / 60000
@@ -39,13 +59,18 @@ export default function BaselineTool() {
       return
     }
 
+    if (!studentId) return
+
     setIsSubmitting(true)
     try {
       const result = await studentWritingFingerprintBaseline({
         writingSample: text,
         typingSpeedWpm: wpm
       })
+      
+      saveStudentBaseline(studentId, result)
       setFingerprint(result)
+      
       toast({
         title: "Fingerprint Created",
         description: "Your writing baseline has been successfully established."
@@ -63,7 +88,7 @@ export default function BaselineTool() {
 
   if (fingerprint) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
             <ShieldCheck className="w-10 h-10 text-green-600" />
@@ -72,25 +97,42 @@ export default function BaselineTool() {
           <p className="text-muted-foreground max-w-lg mx-auto">
             Your writing fingerprint has been securely recorded. This will be used to verify your work in future assessments.
           </p>
+          <div className="pt-4">
+            <Button size="lg" onClick={() => router.push('/student/assessments')} className="gap-2">
+              Go to Assessments <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card>
+          <Card className="shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Style Analysis</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm"><strong>Typing Speed:</strong> {fingerprint.typingSpeedWpm} WPM</p>
-              <p className="text-sm"><strong>Summary:</strong> {fingerprint.writingStyleSummary}</p>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Typing Speed</p>
+                <p className="text-lg font-bold">{fingerprint.typingSpeedWpm} WPM</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Style Summary</p>
+                <p className="text-sm leading-relaxed text-slate-600">{fingerprint.writingStyleSummary}</p>
+              </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-md">
             <CardHeader>
               <CardTitle className="text-lg">Structural Patterns</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm"><strong>Vocabulary:</strong> {fingerprint.vocabularyAnalysis}</p>
-              <p className="text-sm"><strong>Structure:</strong> {fingerprint.sentenceStructureAnalysis}</p>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Vocabulary</p>
+                <p className="text-sm leading-relaxed text-slate-600">{fingerprint.vocabularyAnalysis}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Structure</p>
+                <p className="text-sm leading-relaxed text-slate-600">{fingerprint.sentenceStructureAnalysis}</p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -99,30 +141,30 @@ export default function BaselineTool() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center gap-4 border-b pb-6">
         <div className="p-3 bg-primary/10 rounded-xl">
           <PenTool className="w-8 h-8 text-primary" />
         </div>
         <div>
           <h2 className="text-3xl font-headline font-bold">Initial Writing Baseline</h2>
-          <p className="text-muted-foreground">Complete this short essay to establish your unique writing fingerprint.</p>
+          <p className="text-muted-foreground">Establish your unique biometric profile before starting assessments.</p>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="shadow-xl">
+          <Card className="shadow-xl border-none ring-1 ring-slate-200">
             <CardHeader>
-              <CardTitle className="font-headline">Prompt: The Future of Academic Integrity</CardTitle>
+              <CardTitle className="font-headline">Prompt: Technology in Education</CardTitle>
               <CardDescription>
-                Please write 200-300 words sharing your thoughts on how AI affects academic honesty.
-                Do not copy-paste or use AI assistance for this task.
+                Share your thoughts on how digital tools have changed the way you learn. 
+                Write at least 500 characters. **Do not copy-paste or use AI.**
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="Start writing here..."
+                placeholder="Start writing your sample here..."
                 className="min-h-[400px] text-lg leading-relaxed font-body"
                 value={text}
                 onChange={(e) => {
@@ -131,16 +173,16 @@ export default function BaselineTool() {
                 }}
                 disabled={isSubmitting}
               />
-              <div className="mt-4 flex justify-between items-center">
-                <div className="text-sm text-muted-foreground">
-                  Characters: {text.length} / 500 minimum
+              <div className="mt-6 flex justify-between items-center">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Progress: <span className={text.length >= 500 ? "text-green-600" : "text-primary"}>{text.length}</span> / 500 characters
                 </div>
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={isSubmitting || text.length < 100}
-                  className="px-8"
+                  disabled={isSubmitting || text.length < 500}
+                  className="px-8 bg-accent hover:bg-accent/90 shadow-lg"
                 >
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : "Submit Baseline"}
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating Fingerprint...</> : "Submit Baseline"}
                 </Button>
               </div>
             </CardContent>
@@ -148,42 +190,42 @@ export default function BaselineTool() {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="shadow-md border-none ring-1 ring-slate-200">
             <CardHeader>
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
                 <BrainCircuit className="w-4 h-4 text-accent" />
-                Live Monitoring
+                Biometric Tracking
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div>
-                <p className="text-xs text-muted-foreground uppercase mb-1">Live WPM</p>
-                <p className="text-3xl font-headline font-bold">{wpm}</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Current WPM</p>
+                <p className="text-4xl font-headline font-bold text-primary">{wpm}</p>
               </div>
-              <div className="pt-4 border-t">
-                <p className="text-xs text-muted-foreground font-medium mb-2">Metrics Tracked:</p>
-                <ul className="space-y-2 text-xs">
-                  <li className="flex items-center gap-2">
+              <div className="pt-4 border-t space-y-4">
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Tracking Parameters</p>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    Keystroke dynamics
+                    Keystroke Interval Dynamics
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    Sentence complexity
+                    Syntactic Structure Patterns
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    Vocabulary diversity
+                    Vocabulary Nuance Analysis
                   </li>
                 </ul>
               </div>
             </CardContent>
           </Card>
 
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="text-sm font-bold text-yellow-800 mb-1">Important</h4>
-            <p className="text-xs text-yellow-700 leading-relaxed">
-              This process only happens once. Please provide a natural writing sample for the most accurate baseline.
+          <div className="p-5 bg-primary/5 border border-primary/10 rounded-2xl shadow-sm">
+            <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-2">Requirement</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This baseline is mandatory. AcademiaGuard uses it to protect your academic reputation by verifying that your submitted work consistently matches your unique writing style.
             </p>
           </div>
         </div>
