@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { MonitoringEngine } from "@/components/assessments/monitoring-engine"
-import { getAssessments, saveSession, getSessions, updateSession } from "@/lib/storage"
+import { getAssessments, saveSession, getSessions, updateSession, getStudents, updateStudent } from "@/lib/storage"
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +29,6 @@ export default function ActiveAssessment() {
   const [studentId, setStudentId] = useState<string>("")
   const [studentName, setStudentName] = useState<string>("")
 
-  // Compute full text for monitoring engine analysis
   const fullContent = Object.values(answers).join("\n\n")
 
   useEffect(() => {
@@ -58,7 +56,6 @@ export default function ActiveAssessment() {
     
     setAssessment(found)
 
-    // Check if session already exists or initialize it
     const sessions = getSessions()
     const existing = sessions.find(s => s.assessmentId === found.id && s.studentId === user.id)
     
@@ -102,7 +99,6 @@ export default function ActiveAssessment() {
   const handleSubmit = () => {
     setIsSubmitting(true)
     
-    // Calculate Score
     let earned = 0
     let total = 0
     
@@ -116,7 +112,6 @@ export default function ActiveAssessment() {
       }
     })
 
-    // Update session to completed
     const sessions = getSessions()
     const current = sessions.find(s => s.assessmentId === assessment.id && s.studentId === studentId)
     if (current) {
@@ -126,6 +121,19 @@ export default function ActiveAssessment() {
         lastActive: new Date().toLocaleTimeString(),
         score: earned,
         totalPossiblePoints: total
+      })
+    }
+
+    // Update Student Streak and Honesty Score on "Clean" completion
+    const students = getStudents()
+    const student = students.find(s => s.id === studentId)
+    if (student) {
+      const hadNoWarnings = (current?.warningCount || 0) === 0
+      updateStudent({
+        ...student,
+        honestStreak: hadNoWarnings ? (student.honestStreak || 0) + 1 : 0,
+        honestyScore: hadNoWarnings ? Math.min(100, student.honestyScore + 2) : student.honestyScore,
+        totalAssessments: (student.totalAssessments || 0) + 1
       })
     }
 
@@ -224,7 +232,7 @@ export default function ActiveAssessment() {
               </Badge>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                Live Monitoring Active
+                Live Proctoring Active
               </div>
             </div>
           </div>

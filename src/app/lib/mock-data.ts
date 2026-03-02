@@ -27,6 +27,7 @@ export interface Student {
   honestyScore: number;
   totalAssessments: number;
   flaggedSessions: number;
+  honestStreak: number;
 }
 
 export interface StudentSession {

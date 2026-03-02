@@ -1,14 +1,14 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ShieldAlert, AlertCircle, Eye, Loader2, ChevronDown, ChevronUp, Minimize2, Maximize2, Clock } from "lucide-react"
+import { ShieldAlert, AlertCircle, Eye, Loader2, ChevronDown, ChevronUp, Minimize2, Maximize2, Clock, Camera, CameraOff } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { updateSession, getSessions, getStudents, updateStudent } from "@/lib/storage"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { updateSession, getSessions, getStudents, updateStudent, getStudentBaseline } from "@/lib/storage"
 import { StudentSession } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 
@@ -35,6 +35,8 @@ export function MonitoringEngine({
   studentId = "demo_student",
   durationMinutes = 60
 }: MonitoringEngineProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null)
   const [stats, setStats] = useState<MonitorStats>({
     typingSpeed: 0,
     pasteFrequency: 0,
@@ -49,14 +51,38 @@ export function MonitoringEngine({
   const lastRiskScore = useRef<string>("Normal")
   const sessionStartTime = useRef<number>(Date.now())
 
+  // Camera initialization
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        setHasCameraPermission(true)
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error)
+        setHasCameraPermission(false)
+        triggerWarning("Camera access required for proctoring")
+      }
+    }
+
+    getCameraPermission()
+
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
+        tracks.forEach(track => track.stop())
+      }
+    }
+  }, [])
+
   // Timer logic
   useEffect(() => {
     if (timeLeft <= 0) return
-
     const timer = setInterval(() => {
       setTimeLeft(prev => Math.max(0, prev - 1))
     }, 1000)
-
     return () => clearInterval(timer)
   }, [timeLeft])
 
@@ -71,9 +97,7 @@ export function MonitoringEngine({
     const handleBlur = () => {
       setStats(prev => {
         const newCount = prev.tabSwitchCount + 1
-        if (newCount > 2) {
-          triggerWarning("Tab switching detected")
-        }
+        triggerWarning("Window focus lost (Tab switch detected)")
         return { ...prev, tabSwitchCount: newCount }
       })
     }
@@ -122,31 +146,29 @@ export function MonitoringEngine({
         warningCount: nextCount,
         status: nextCount >= 3 ? 'Locked' : 'Flagged',
         violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
-        pasteCount: stats.pasteFrequency + 1, // Reflect latest state
+        pasteCount: stats.pasteFrequency,
         tabSwitchCount: stats.tabSwitchCount,
         lastActive: new Date().toLocaleTimeString()
       })
     }
 
-    // Update student score and flagged sessions
+    // Update student score and reset streak on warning
     const students = getStudents()
     const student = students.find(s => s.id === studentId)
     if (student) {
-      const newScore = Math.max(0, student.honestyScore - 5)
-      const newFlaggedCount = nextCount >= 3 ? student.flaggedSessions + 1 : student.flaggedSessions
-      
       updateStudent({
         ...student,
-        honestyScore: newScore,
-        flaggedSessions: newFlaggedCount
+        honestyScore: Math.max(0, student.honestyScore - 10),
+        honestStreak: 0,
+        flaggedSessions: nextCount >= 3 ? student.flaggedSessions + 1 : student.flaggedSessions
       })
     }
   }
 
-  // Calculate WPM and analyze risk periodically
+  // Risk analysis logic
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (!currentWriting || currentWriting.length < 10) return
+      if (!currentWriting || currentWriting.length < 10 || !studentId) return
 
       const elapsedMinutes = (Date.now() - sessionStartTime.current) / 60000
       const words = currentWriting.trim().split(/\s+/).length
@@ -154,11 +176,14 @@ export function MonitoringEngine({
 
       setStats(prev => ({ ...prev, typingSpeed: currentWpm }))
 
+      const baselineData = getStudentBaseline(studentId)
+      const baselineText = baselineData?.writingSample || "Standard academic writing baseline..."
+
       setIsAnalyzing(true)
       try {
         const result = await predictIntegrityRiskScore({
           currentWritingSample: currentWriting,
-          baselineWritingFingerprint: "Baseline text sample for comparison...",
+          baselineWritingFingerprint: baselineText,
           typingSpeed: currentWpm,
           pasteFrequency: stats.pasteFrequency,
           tabSwitchCount: stats.tabSwitchCount
@@ -170,7 +195,6 @@ export function MonitoringEngine({
           lastRiskScore.current = result.riskScore
         }
 
-        // Update persistent session record
         const sessions = getSessions()
         const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
         if (current) {
@@ -227,6 +251,22 @@ export function MonitoringEngine({
 
           {!isCollapsed && (
             <div className="p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              {/* Camera Feed */}
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden group">
+                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted />
+                <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-md border border-white/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live Proctor</span>
+                </div>
+                {hasCameraPermission === false && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white p-4 text-center">
+                    <CameraOff className="w-8 h-8 mb-2 text-destructive" />
+                    <p className="text-[10px] font-bold">Camera Blocked</p>
+                    <p className="text-[8px] opacity-70">Enable camera to prevent lockout.</p>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Typing Speed</p>
