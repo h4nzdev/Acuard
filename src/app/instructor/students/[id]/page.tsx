@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { getStudents, getSessions } from "@/lib/storage"
 import { Student, StudentSession } from "@/app/lib/mock-data"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 
 export default function StudentProfile() {
