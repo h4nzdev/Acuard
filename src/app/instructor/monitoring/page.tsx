@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Eye, ShieldAlert, MoreVertical, RefreshCw, Filter, Search } from "lucide-react"
 import { 
   Table, 
@@ -13,10 +13,23 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { MOCK_SESSIONS } from "@/lib/mock-data"
+import { getSessions } from "@/lib/storage"
+import { StudentSession } from "@/app/lib/mock-data"
 
 export default function LiveMonitoring() {
-  const [sessions] = useState(MOCK_SESSIONS)
+  const [sessions, setSessions] = useState<StudentSession[]>([])
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setSessions(getSessions())
+    setIsMounted(true)
+  }, [])
+
+  const refreshFeed = () => {
+    setSessions(getSessions())
+  }
+
+  if (!isMounted) return null
 
   return (
     <div className="space-y-8">
@@ -26,7 +39,7 @@ export default function LiveMonitoring() {
           <p className="text-muted-foreground">Real-time oversight of current assessments.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={refreshFeed}>
             <RefreshCw className="w-4 h-4" />
             Refresh Feed
           </Button>

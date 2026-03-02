@@ -1,11 +1,29 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Users, AlertTriangle, FileCheck, ShieldX, Activity, ArrowUpRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { MOCK_SESSIONS } from "@/lib/mock-data"
+import { getSessions, getAssessments } from "@/lib/storage"
+import { StudentSession, Assessment } from "@/app/lib/mock-data"
 import Link from "next/link"
 
 export default function InstructorDashboard() {
-  const flaggedCount = MOCK_SESSIONS.filter(s => s.status === 'Flagged' || s.status === 'Locked').length
+  const [sessions, setSessions] = useState<StudentSession[]>([])
+  const [assessments, setAssessments] = useState<Assessment[]>([])
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setSessions(getSessions())
+    setAssessments(getAssessments())
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) return null
+
+  const flaggedCount = sessions.filter(s => s.status === 'Flagged' || s.status === 'Locked').length
+  const lockedCount = sessions.filter(s => s.status === 'Locked').length
+  const activeExamsCount = assessments.length
 
   return (
     <div className="space-y-8">
@@ -26,9 +44,9 @@ export default function InstructorDashboard() {
 
       <div className="grid md:grid-cols-4 gap-6">
         <StatCard title="Total Students" value="124" icon={Users} trend="+4% this week" />
-        <StatCard title="Active Exams" value="3" icon={Activity} color="text-primary" />
+        <StatCard title="Active Exams" value={activeExamsCount.toString()} icon={Activity} color="text-primary" />
         <StatCard title="Flagged Sessions" value={flaggedCount.toString()} icon={AlertTriangle} color="text-yellow-600" />
-        <StatCard title="Locked Sessions" value="1" icon={ShieldX} color="text-destructive" />
+        <StatCard title="Locked Sessions" value={lockedCount.toString()} icon={ShieldX} color="text-destructive" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -44,27 +62,33 @@ export default function InstructorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {MOCK_SESSIONS.filter(s => s.status !== 'In Progress').map((session) => (
-                <div key={session.studentId} className="flex items-center justify-between p-4 bg-slate-50 border rounded-xl hover:bg-white transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-2 h-12 rounded-full ${session.status === 'Locked' ? 'bg-destructive' : 'bg-yellow-500'}`} />
-                    <div>
-                      <p className="font-bold text-slate-800">{session.studentName}</p>
-                      <p className="text-xs text-muted-foreground">Modern European History Final</p>
+              {sessions.filter(s => s.status !== 'In Progress').length > 0 ? (
+                sessions.filter(s => s.status !== 'In Progress').map((session) => (
+                  <div key={session.studentId} className="flex items-center justify-between p-4 bg-slate-50 border rounded-xl hover:bg-white transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-12 rounded-full ${session.status === 'Locked' ? 'bg-destructive' : 'bg-yellow-500'}`} />
+                      <div>
+                        <p className="font-bold text-slate-800">{session.studentName}</p>
+                        <p className="text-xs text-muted-foreground">Modern European History Final</p>
+                      </div>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                          session.riskScore === 'Highly Suspicious' ? 'bg-destructive/10 text-destructive' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {session.riskScore}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{session.warningCount} warnings triggered</p>
                     </div>
                   </div>
-                  <div className="text-right space-y-1">
-                    <div className="flex items-center gap-2 justify-end">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                        session.riskScore === 'Highly Suspicious' ? 'bg-destructive/10 text-destructive' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {session.riskScore}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{session.warningCount} warnings triggered</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No flagged sessions at this time.
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>

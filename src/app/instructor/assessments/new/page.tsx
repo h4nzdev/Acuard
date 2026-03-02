@@ -11,12 +11,36 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/hooks/use-toast"
+import { saveAssessment } from "@/lib/storage"
+import { Assessment } from "@/app/lib/mock-data"
 
 export default function NewAssessment() {
   const router = useRouter()
-  const [policy, setPolicy] = useState('Monitored')
+  const [policy, setPolicy] = useState<'Not Allowed' | 'Allowed but Monitored' | 'Fully Allowed'>('Allowed but Monitored')
+  const [title, setTitle] = useState("")
+  const [instructions, setInstructions] = useState("")
+  const [duration, setDuration] = useState("60")
 
   const handleCreate = () => {
+    if (!title) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter an assessment title.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const newAssessment: Assessment = {
+      id: Math.random().toString(36).substr(2, 9),
+      title,
+      description: instructions,
+      policy: policy as any,
+      durationMinutes: parseInt(duration)
+    }
+
+    saveAssessment(newAssessment)
+
     toast({
       title: "Assessment Created",
       description: "Policy applied and activity is ready for student access."
@@ -51,16 +75,33 @@ export default function NewAssessment() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="title">Assessment Title</Label>
-                <Input id="title" placeholder="e.g. Modern Physics Midterm" className="h-11" />
+                <Input 
+                  id="title" 
+                  placeholder="e.g. Modern Physics Midterm" 
+                  className="h-11" 
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="instructions">Instructions</Label>
-                <Textarea id="instructions" placeholder="Enter instructions for students..." className="min-h-[150px]" />
+                <Textarea 
+                  id="instructions" 
+                  placeholder="Enter instructions for students..." 
+                  className="min-h-[150px]" 
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="duration">Duration (Minutes)</Label>
-                  <Input id="duration" type="number" defaultValue={60} />
+                  <Input 
+                    id="duration" 
+                    type="number" 
+                    value={duration} 
+                    onChange={(e) => setDuration(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="weight">Grade Weight (%)</Label>
@@ -81,36 +122,36 @@ export default function NewAssessment() {
             <CardContent className="space-y-8">
               <div className="space-y-4">
                 <Label className="text-base font-bold">Copy-Paste Policy</Label>
-                <RadioGroup defaultValue="monitored" onValueChange={setPolicy} className="grid grid-cols-3 gap-4">
+                <RadioGroup defaultValue="monitored" onValueChange={(val) => setPolicy(val as any)} className="grid grid-cols-3 gap-4">
                   <Label
                     htmlFor="not-allowed"
-                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'not-allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
+                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'Not Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
                   >
-                    <RadioGroupItem value="not-allowed" id="not-allowed" className="sr-only" />
+                    <RadioGroupItem value="Not Allowed" id="not-allowed" className="sr-only" />
                     <X className="mb-3 h-6 w-6 text-destructive" />
                     <span className="text-xs font-bold uppercase">Disallowed</span>
                   </Label>
                   <Label
                     htmlFor="monitored"
-                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'monitored' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
+                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'Allowed but Monitored' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
                   >
-                    <RadioGroupItem value="monitored" id="monitored" className="sr-only" />
+                    <RadioGroupItem value="Allowed but Monitored" id="monitored" className="sr-only" />
                     <Shield className="mb-3 h-6 w-6 text-primary" />
                     <span className="text-xs font-bold uppercase">Monitored</span>
                   </Label>
                   <Label
                     htmlFor="allowed"
-                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
+                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'Fully Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
                   >
-                    <RadioGroupItem value="allowed" id="allowed" className="sr-only" />
+                    <RadioGroupItem value="Fully Allowed" id="allowed" className="sr-only" />
                     <MousePointer2 className="mb-3 h-6 w-6 text-green-600" />
                     <span className="text-xs font-bold uppercase">Fully Allowed</span>
                   </Label>
                 </RadioGroup>
                 <p className="text-xs text-muted-foreground leading-relaxed mt-2 bg-white p-3 rounded-lg border italic">
-                  {policy === 'not-allowed' && "Students will be blocked from pasting. Keystrokes are strictly monitored against baseline fingerprint."}
-                  {policy === 'monitored' && "Students can paste, but events are flagged and analyzed for similarity with baseline style."}
-                  {policy === 'allowed' && "Standard monitoring is active, but paste events do not trigger automatic warnings."}
+                  {policy === 'Not Allowed' && "Students will be blocked from pasting. Keystrokes are strictly monitored against baseline fingerprint."}
+                  {policy === 'Allowed but Monitored' && "Students can paste, but events are flagged and analyzed for similarity with baseline style."}
+                  {policy === 'Fully Allowed' && "Standard monitoring is active, but paste events do not trigger automatic warnings."}
                 </p>
               </div>
 
@@ -128,13 +169,6 @@ export default function NewAssessment() {
                     <p className="text-xs text-muted-foreground">Log events when student leaves the assessment tab.</p>
                   </div>
                   <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between opacity-50">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-bold">Camera Attention Tracking (BETA)</Label>
-                    <p className="text-xs text-muted-foreground">Use face detection to ensure constant focus on exam screen.</p>
-                  </div>
-                  <Switch disabled />
                 </div>
               </div>
             </CardContent>
