@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -15,38 +16,49 @@ export default function StudentDashboard() {
   const [student, setStudent] = useState<Student | null>(null)
   const [isMounted, setIsMounted] = useState(false)
 
-  // In a real app, this would come from an auth context
-  const currentStudentId = "demo_student" 
-
   useEffect(() => {
+    // Get current user from login session
+    const currentUserStr = localStorage.getItem('ag_current_user')
+    const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null
+    
+    if (!currentUser) {
+      // If no user is logged in, this should ideally redirect to login
+      setIsMounted(true)
+      return
+    }
+
     const allSessions = getSessions()
-    const studentSessions = allSessions.filter(s => s.studentId === currentStudentId)
+    const studentSessions = allSessions.filter(s => s.studentId === currentUser.id)
     setSessions(studentSessions)
 
     const allStudents = getStudents()
-    const currentStudent = allStudents.find(s => s.id === currentStudentId) || {
-      id: currentStudentId,
-      name: "Student",
-      honestyScore: 100,
-      totalAssessments: 0,
-      flaggedSessions: 0,
-      enrolledDate: new Date().toLocaleDateString()
-    }
-    setStudent(currentStudent)
+    const currentStudent = allStudents.find(s => s.id === currentUser.id)
+    setStudent(currentStudent || null)
     
     setIsMounted(true)
   }, [])
 
   if (!isMounted) return null
 
-  const activeWarnings = sessions.filter(s => s.status === 'Flagged' || s.status === 'Locked').reduce((acc, s) => acc + s.warningCount, 0)
-  const honestyScore = student?.honestyScore || 0
+  if (!student) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <AlertCircle className="w-12 h-12 text-slate-300" />
+        <h2 className="text-xl font-bold">Profile not found</h2>
+        <p className="text-muted-foreground">Please log in again to sync your profile data.</p>
+        <Button asChild><Link href="/login">Back to Login</Link></Button>
+      </div>
+    )
+  }
+
+  const activeWarnings = sessions.reduce((acc, s) => acc + s.warningCount, 0)
+  const honestyScore = student.honestyScore
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-headline font-bold text-slate-900">Welcome back{student?.name ? `, ${student.name}` : ''}!</h2>
+          <h2 className="text-3xl font-headline font-bold text-slate-900">Welcome back, {student.name}!</h2>
           <p className="text-muted-foreground">Monitor your personal integrity score and assessment history.</p>
         </div>
         <Button asChild className="bg-primary">
