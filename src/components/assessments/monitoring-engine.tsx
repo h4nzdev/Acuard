@@ -2,13 +2,15 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ShieldAlert, AlertCircle, Eye, Loader2 } from "lucide-react"
+import { ShieldAlert, AlertCircle, Eye, Loader2, ChevronDown, ChevronUp, Minimize2, Maximize2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
 import { updateSession, getSessions, getStudents, updateStudent } from "@/lib/storage"
 import { StudentSession } from "@/app/lib/mock-data"
+import { cn } from "@/lib/utils"
 
 interface MonitorStats {
   typingSpeed: number
@@ -38,6 +40,9 @@ export function MonitoringEngine({
   })
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [warningCount, setWarningCount] = useState(0)
+  const [riskScore, setRiskScore] = useState<string>("Normal")
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  
   const lastRiskScore = useRef<string>("Normal")
   const sessionStartTime = useRef<number>(Date.now())
 
@@ -97,7 +102,7 @@ export function MonitoringEngine({
         warningCount: nextCount,
         status: nextCount >= 3 ? 'Locked' : 'Flagged',
         violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
-        pasteCount: stats.pasteFrequency,
+        pasteCount: stats.pasteFrequency + 1, // Reflect latest state
         tabSwitchCount: stats.tabSwitchCount,
         lastActive: new Date().toLocaleTimeString()
       })
@@ -141,6 +146,7 @@ export function MonitoringEngine({
 
         if (result.riskScore !== lastRiskScore.current) {
           onRiskUpdate(result.riskScore)
+          setRiskScore(result.riskScore)
           lastRiskScore.current = result.riskScore
         }
 
@@ -168,43 +174,79 @@ export function MonitoringEngine({
   }, [currentWriting, stats.pasteFrequency, stats.tabSwitchCount, studentId, assessmentId])
 
   return (
-    <div className="fixed bottom-8 right-8 w-80 space-y-4 z-50 animate-in slide-in-from-bottom-4">
-      <Card className="shadow-2xl border-primary/20 bg-white/90 backdrop-blur-md">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
+    <div className="fixed bottom-8 right-8 w-80 space-y-3 z-50 animate-in slide-in-from-bottom-4 transition-all duration-300">
+      <Card className={cn(
+        "shadow-2xl border-primary/20 bg-white/95 backdrop-blur-sm transition-all duration-300 overflow-hidden",
+        isCollapsed ? "h-14" : "h-auto"
+      )}>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between p-4 bg-primary/5 border-b">
             <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-primary animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider">Live Monitoring</span>
+              <div className={cn(
+                "w-2 h-2 rounded-full animate-pulse",
+                riskScore === 'Normal' ? "bg-green-500" : "bg-orange-500"
+              )} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Live Monitoring</span>
+              {isAnalyzing && <Loader2 className="w-3 h-3 animate-spin text-primary/60" />}
             </div>
-            {isAnalyzing && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6 hover:bg-primary/10"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+            </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-[10px] text-muted-foreground font-medium uppercase">Typing Speed</p>
-              <p className="text-lg font-headline font-bold">{stats.typingSpeed} <span className="text-[10px] font-normal">WPM</span></p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] text-muted-foreground font-medium uppercase">Risk Status</p>
-              <p className={`text-sm font-bold ${lastRiskScore.current === 'Normal' ? 'text-green-600' : 'text-orange-500'}`}>
-                {lastRiskScore.current}
-              </p>
-            </div>
-          </div>
+          {!isCollapsed && (
+            <div className="p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Typing Speed</p>
+                  <p className="text-xl font-headline font-bold text-slate-900">
+                    {stats.typingSpeed} <span className="text-[10px] font-normal text-muted-foreground uppercase">WPM</span>
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Status</p>
+                  <p className={cn(
+                    "text-sm font-bold uppercase tracking-tight",
+                    riskScore === 'Normal' ? 'text-green-600' : 'text-orange-600'
+                  )}>
+                    {riskScore}
+                  </p>
+                </div>
+              </div>
 
-          <div className="space-y-2 pt-2 border-t">
-            <div className="flex justify-between items-center text-[10px] font-bold uppercase">
-              <span>Warning Progress</span>
-              <span className={warningCount >= 2 ? "text-destructive" : ""}>{warningCount} / 3</span>
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                  <span className="text-slate-400">Warning Progress</span>
+                  <span className={cn(
+                    warningCount >= 2 ? "text-destructive" : "text-primary"
+                  )}>
+                    {warningCount} / 3
+                  </span>
+                </div>
+                <Progress 
+                  value={(warningCount / 3) * 100} 
+                  className={cn(
+                    "h-1.5 transition-all duration-500",
+                    warningCount >= 2 ? "[&>div]:bg-destructive" : ""
+                  )} 
+                />
+              </div>
             </div>
-            <Progress value={(warningCount / 3) * 100} className="h-1.5" />
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg">
-        <ShieldAlert className="w-4 h-4" />
-        <span className="text-xs font-medium">Session Secure & Monitored</span>
+      <div className={cn(
+        "flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg transition-all duration-300",
+        isCollapsed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+      )}>
+        <ShieldAlert className="w-3 h-3" />
+        <span className="text-[10px] font-bold uppercase tracking-widest">Monitored Session</span>
       </div>
     </div>
   )
