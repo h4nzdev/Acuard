@@ -10,6 +10,7 @@ import {
   Settings, 
   PenTool, 
   User, 
+  Users,
   LogOut, 
   History,
   Activity,
@@ -28,13 +29,13 @@ export function SidebarNav({ role }: SidebarNavProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
-  // The sidebar is visually expanded if it's either not manually collapsed OR if the user is hovering.
   const isExpanded = !isCollapsed || isHovered
 
   const links = role === 'instructor' ? [
     { href: "/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/instructor/monitoring", label: "Live Monitoring", icon: Activity },
     { href: "/instructor/assessments", label: "Assessments", icon: FileText },
+    { href: "/instructor/students", label: "Students", icon: Users },
     { href: "/instructor/settings", label: "Policies", icon: Settings },
   ] : [
     { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -52,7 +53,6 @@ export function SidebarNav({ role }: SidebarNavProps) {
       onMouseEnter={() => isCollapsed && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* The actual content container that expands on hover */}
       <div 
         className={cn(
           "absolute top-0 left-0 h-full flex flex-col bg-sidebar border-r border-sidebar-border shadow-xl transition-all duration-300 ease-in-out overflow-hidden",
@@ -74,22 +74,14 @@ export function SidebarNav({ role }: SidebarNavProps) {
                 <ShieldAlert className="w-8 h-8 text-accent" />
               )}
               
-              {/* Toggle button appears only when the sidebar is visually expanded (either locked or hovered) */}
               {isExpanded && (
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (isCollapsed) {
-                      // Lock into expanded state
-                      setIsCollapsed(false);
-                      setIsHovered(false);
-                    } else {
-                      // Lock into collapsed state
-                      setIsCollapsed(true);
-                      setIsHovered(false);
-                    }
+                    setIsCollapsed(!isCollapsed);
+                    setIsHovered(false);
                   }}
                   className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all shrink-0"
                 >

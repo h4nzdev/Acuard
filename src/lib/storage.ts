@@ -1,13 +1,14 @@
-import { Assessment, StudentSession } from "@/app/lib/mock-data";
+import { Assessment, StudentSession, Student } from "@/app/lib/mock-data";
 
 const STORAGE_KEYS = {
   ASSESSMENTS: 'ag_assessments',
   SESSIONS: 'ag_sessions',
+  STUDENTS: 'ag_students',
 };
 
-// Explicitly start with empty arrays for a fresh experience
 const INITIAL_ASSESSMENTS: Assessment[] = [];
 const INITIAL_SESSIONS: StudentSession[] = [];
+const INITIAL_STUDENTS: Student[] = [];
 
 export const getAssessments = (): Assessment[] => {
   if (typeof window === 'undefined') return [];
@@ -19,7 +20,6 @@ export const getAssessments = (): Assessment[] => {
   try {
     return JSON.parse(stored);
   } catch (e) {
-    console.error("Failed to parse assessments from storage", e);
     return [];
   }
 };
@@ -46,7 +46,6 @@ export const getSessions = (): StudentSession[] => {
   try {
     return JSON.parse(stored);
   } catch (e) {
-    console.error("Failed to parse sessions from storage", e);
     return [];
   }
 };
@@ -67,4 +66,31 @@ export const deleteSession = (studentId: string) => {
   const current = getSessions();
   const updated = current.filter(s => s.studentId !== studentId);
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
+};
+
+// Student Storage
+export const getStudents = (): Student[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(INITIAL_STUDENTS));
+    return INITIAL_STUDENTS;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveStudent = (student: Student) => {
+  const current = getStudents();
+  const updated = [...current, student];
+  localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
+};
+
+export const deleteStudent = (id: string) => {
+  const current = getStudents();
+  const updated = current.filter(s => s.id !== id);
+  localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
 };

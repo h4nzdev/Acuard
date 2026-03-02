@@ -15,6 +15,16 @@ export interface Assessment {
   questions: Question[];
 }
 
+export interface Student {
+  id: string;
+  name: string;
+  email: string;
+  enrolledDate: string;
+  honestyScore: number;
+  totalAssessments: number;
+  flaggedSessions: number;
+}
+
 export interface StudentSession {
   studentId: string;
   studentName: string;
