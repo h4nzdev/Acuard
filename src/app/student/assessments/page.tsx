@@ -3,13 +3,15 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { FileText, Clock, ChevronRight, AlertCircle, ShieldCheck, PenTool, BrainCircuit } from "lucide-react"
+import { FileText, Clock, ChevronRight, AlertCircle, ShieldCheck, PenTool, BrainCircuit, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { getAssessments, getSessions, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
+import { Textarea } from "@/components/ui/textarea"
+import { getAssessments, getSessions, getStudentBaseline, getGlobalSettings, saveStudentBaseline } from "@/lib/storage"
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { useRouter } from "next/navigation"
+import { toast } from "@/hooks/use-toast"
 
 export default function StudentAssessments() {
   const router = useRouter()
@@ -19,6 +21,12 @@ export default function StudentAssessments() {
   const [studentId, setStudentId] = useState<string | null>(null)
   const [hasBaseline, setHasBaseline] = useState<boolean>(true)
   const [requireBaseline, setRequireBaseline] = useState<boolean>(true)
+  
+  // Baseline Tool State (Embedded)
+  const [baselineText, setBaselineText] = useState("")
+  const [startTime, setStartTime] = useState<number | null>(null)
+  const [isSubmittingBaseline, setIsSubmittingBaseline] = useState(false)
+  const [wpm, setWpm] = useState(0)
 
   useEffect(() => {
     const userStr = localStorage.getItem('ag_current_user')
@@ -26,11 +34,9 @@ export default function StudentAssessments() {
       const user = JSON.parse(userStr)
       setStudentId(user.id)
       
-      // Check baseline
       const baseline = getStudentBaseline(user.id)
       setHasBaseline(!!baseline)
 
-      // Check settings
       const settings = getGlobalSettings()
       setRequireBaseline(settings.requireBaseline)
     } else {
@@ -42,58 +48,107 @@ export default function StudentAssessments() {
     setIsMounted(true)
   }, [router])
 
+  useEffect(() => {
+    if (!startTime || !baselineText) return
+    const elapsedMinutes = (Date.now() - startTime) / 60000
+    if (elapsedMinutes > 0) {
+      const words = baselineText.trim().split(/\s+/).length
+      setWpm(Math.round(words / elapsedMinutes))
+    }
+  }, [baselineText, startTime])
+
+  const handleBaselineSubmit = () => {
+    if (baselineText.length < 50) {
+      toast({
+        title: "Sample too short",
+        description: "Please write at least 50 characters.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!studentId) return
+
+    setIsSubmittingBaseline(true)
+    
+    // Mock processing for frontend setup
+    setTimeout(() => {
+      const mockResult = {
+        typingSpeedWpm: wpm || 45,
+        writingStyleSummary: "Established via assessment gateway.",
+        vocabularyAnalysis: "Consistent with academic standards.",
+        sentenceStructureAnalysis: "Standard complexity detected.",
+        sentimentAnalysis: "Objective.",
+        potentialAIIndicators: ["None detected."]
+      }
+      
+      saveStudentBaseline(studentId, mockResult)
+      setHasBaseline(true)
+      setIsSubmittingBaseline(false)
+      
+      toast({
+        title: "Baseline Established",
+        description: "Your writing fingerprint is recorded. Assessments are now unlocked."
+      })
+    }, 1500)
+  }
+
   if (!isMounted) return null
 
-  // If no baseline and it is required, show the baseline requirement gateway
+  // Mandatory Baseline Gateway
   if (requireBaseline && !hasBaseline) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500 py-12">
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500 py-4">
         <Card className="border-none shadow-2xl ring-1 ring-slate-200 overflow-hidden">
           <div className="h-2 bg-accent" />
-          <CardContent className="p-12 text-center space-y-8">
-            <div className="flex justify-center">
-              <div className="w-24 h-24 bg-accent/10 rounded-full flex items-center justify-center relative">
-                <PenTool className="w-10 h-10 text-accent" />
-                <div className="absolute -top-1 -right-1 bg-white p-1.5 rounded-full shadow-md">
-                  <AlertCircle className="w-5 h-5 text-destructive" />
-                </div>
+          <CardHeader className="text-center space-y-2 pb-2">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center">
+                <PenTool className="w-8 h-8 text-accent" />
               </div>
             </div>
-            
-            <div className="space-y-3">
-              <h2 className="text-4xl font-headline font-bold text-slate-900">Baseline Required</h2>
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-                To maintain academic integrity, you must establish your unique writing fingerprint before you can access course assessments.
+            <CardTitle className="text-3xl font-headline font-bold text-slate-900">Writing Baseline Required</CardTitle>
+            <CardDescription className="text-base max-w-lg mx-auto">
+              Please provide a writing sample below to unlock your assessments. This sample helps establish your unique typing and writing style.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 space-y-6">
+            <div className="bg-slate-50 p-4 rounded-xl border mb-4">
+              <p className="text-xs font-bold text-primary uppercase mb-2">Instructions</p>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Describe your academic goals for this semester. Write at least 50 characters. 
+                <span className="font-bold text-accent ml-1">Copy-paste is allowed for testing.</span>
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-4 text-left">
-              <div className="p-4 bg-slate-50 rounded-xl border flex gap-4">
-                <div className="p-2 bg-white rounded-lg shadow-sm shrink-0">
-                  <BrainCircuit className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-slate-800">Biometric Analysis</h4>
-                  <p className="text-xs text-muted-foreground">Establishes typing cadence and syntactic patterns.</p>
-                </div>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-xl border flex gap-4">
-                <div className="p-2 bg-white rounded-lg shadow-sm shrink-0">
-                  <ShieldCheck className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-slate-800">Identity Protection</h4>
-                  <p className="text-xs text-muted-foreground">Verifies your work is genuinely yours in future tests.</p>
-                </div>
-              </div>
-            </div>
+            <Textarea
+              placeholder="Start typing your goals here..."
+              className="min-h-[250px] text-lg leading-relaxed font-body"
+              value={baselineText}
+              onChange={(e) => {
+                if (!startTime) setStartTime(Date.now())
+                setBaselineText(e.target.value)
+              }}
+              disabled={isSubmittingBaseline}
+            />
 
-            <div className="pt-8">
-              <Button size="lg" className="h-14 px-12 text-lg font-bold bg-accent hover:bg-accent/90 shadow-xl rounded-full" asChild>
-                <Link href="/student/baseline">
-                  Establish Writing Baseline
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Link>
+            <div className="flex justify-between items-center pt-4">
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <p className="text-[10px] uppercase font-black text-muted-foreground">Progress</p>
+                  <p className="text-lg font-bold">{baselineText.length} / 50</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase font-black text-muted-foreground">Est. WPM</p>
+                  <p className="text-lg font-bold">{wpm}</p>
+                </div>
+              </div>
+              <Button 
+                onClick={handleBaselineSubmit} 
+                disabled={isSubmittingBaseline || baselineText.length < 50}
+                className="px-10 h-12 bg-accent hover:bg-accent/90 shadow-lg font-bold"
+              >
+                {isSubmittingBaseline ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : "Submit & Unlock"}
               </Button>
             </div>
           </CardContent>
