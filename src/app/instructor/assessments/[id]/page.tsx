@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getAssessments } from "@/lib/storage"
 import { Assessment } from "@/app/lib/mock-data"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 
 export default function AssessmentDetails() {
