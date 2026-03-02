@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   ListTodo,
   HelpCircle,
-  Type
+  Type,
+  BrainCircuit
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -70,6 +71,12 @@ export default function AssessmentResultDetails() {
   const scorePercentage = session.score !== undefined && session.totalPossiblePoints && session.totalPossiblePoints > 0
     ? Math.round((session.score / session.totalPossiblePoints) * 100)
     : 0
+
+  // Check if writing style analysis is applicable (contains text-based questions)
+  const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area') ?? false
+
+  // Mock match percentage based on risk level
+  const styleMatchPercentage = session.riskScore === 'Normal' ? 96 : session.riskScore === 'Suspicious' ? 54 : 18
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
@@ -157,6 +164,82 @@ export default function AssessmentResultDetails() {
           </CardContent>
         </Card>
       </div>
+
+      {hasTextQuestions && (
+        <Card className="border-none shadow-xl ring-1 ring-slate-200 bg-white overflow-hidden">
+          <CardContent className="p-0">
+            <div className="grid md:grid-cols-2">
+              <div className="p-8 border-r bg-slate-50/50">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <BrainCircuit className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="font-headline font-bold text-xl">Writing Style Analysis</h3>
+                </div>
+                
+                <div className="space-y-6">
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    This activity involved free-text responses. AcademiaGuard compared your current typing dynamics and syntactic phrasing against your established baseline.
+                  </p>
+                  
+                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                      <span>Parameter</span>
+                      <span>Variance</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Keystroke Rhythm</span>
+                      <span className="text-green-600 font-bold">{session.riskScore === 'Normal' ? '< 4%' : '> 22%'}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Syntactic Density</span>
+                      <span className="text-green-600 font-bold">{session.riskScore === 'Normal' ? '< 2%' : '> 15%'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                <div className="relative w-40 h-40">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <circle
+                      className="text-slate-100 stroke-current"
+                      strokeWidth="10"
+                      fill="transparent"
+                      r="40"
+                      cx="50"
+                      cy="50"
+                    />
+                    <circle
+                      className={cn(
+                        "stroke-current transition-all duration-1000 ease-out",
+                        styleMatchPercentage > 80 ? "text-primary" : 
+                        styleMatchPercentage > 40 ? "text-yellow-500" : "text-destructive"
+                      )}
+                      strokeWidth="10"
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (251.2 * styleMatchPercentage) / 100}
+                      strokeLinecap="round"
+                      fill="transparent"
+                      r="40"
+                      cx="50"
+                      cy="50"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-3xl font-headline font-bold text-slate-900">{styleMatchPercentage}%</span>
+                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Match</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-slate-800">Human Pattern Likelihood</p>
+                  <p className="text-xs text-muted-foreground">Compared to unique writing fingerprint</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
