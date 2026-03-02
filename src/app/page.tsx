@@ -68,7 +68,7 @@ export default function Home() {
 
       <footer className="py-12 border-t">
         <div className="container mx-auto px-6 text-center text-muted-foreground">
-          <p>© 2024 Acuard LMS. All rights reserved.</p>
+          <p>© 2026 Acuard LMS. All rights reserved.</p>
         </div>
       </footer>
     </div>
