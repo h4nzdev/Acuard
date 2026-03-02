@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import { toast } from "@/hooks/use-toast"
 import { getStudents, updateStudent, getStudentBaseline } from "@/lib/storage"
 
