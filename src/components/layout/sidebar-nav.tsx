@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
+import Link from "next/navigation"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { 
@@ -16,7 +16,8 @@ import {
   Activity,
   FileText,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Trophy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getGlobalSettings, getStudentBaseline } from "@/lib/storage"
@@ -52,12 +53,14 @@ export function SidebarNav({ role }: SidebarNavProps) {
     { href: "/instructor/monitoring", label: "Live Monitoring", icon: Activity },
     { href: "/instructor/assessments", label: "Assessments", icon: FileText },
     { href: "/instructor/students", label: "Students", icon: Users },
+    { href: "/instructor/leaderboard", label: "Leaderboard", icon: Trophy },
     { href: "/instructor/settings", label: "Policies", icon: Settings },
   ] : [
     { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ...(showWritingBaseline ? [{ href: "/student/baseline", label: "Writing Baseline", icon: PenTool }] : []),
     { href: "/student/assessments", label: "My Assessments", icon: FileText },
     { href: "/student/history", label: "History", icon: History },
+    { href: "/student/leaderboard", label: "Leaderboard", icon: Trophy },
   ]
 
   const profileHref = role === 'instructor' ? "/instructor/profile" : "/student/profile"
