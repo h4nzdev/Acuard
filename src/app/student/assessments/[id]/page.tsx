@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -223,7 +224,7 @@ export default function ActiveAssessment() {
               </Badge>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                {assessment.durationMinutes}:00 Remaining
+                Live Monitoring Active
               </div>
             </div>
           </div>
@@ -327,6 +328,7 @@ export default function ActiveAssessment() {
         onWarning={setWarningCount}
         assessmentId={assessment.id}
         studentId={studentId}
+        durationMinutes={assessment.durationMinutes}
       />
     </div>
   )

@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ShieldAlert, AlertCircle, Eye, Loader2, ChevronDown, ChevronUp, Minimize2, Maximize2 } from "lucide-react"
+import { ShieldAlert, AlertCircle, Eye, Loader2, ChevronDown, ChevronUp, Minimize2, Maximize2, Clock } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,6 +24,7 @@ interface MonitoringEngineProps {
   onWarning: (count: number) => void
   assessmentId?: string
   studentId?: string
+  durationMinutes?: number
 }
 
 export function MonitoringEngine({ 
@@ -31,7 +32,8 @@ export function MonitoringEngine({
   onRiskUpdate, 
   onWarning,
   assessmentId,
-  studentId = "demo_student"
+  studentId = "demo_student",
+  durationMinutes = 60
 }: MonitoringEngineProps) {
   const [stats, setStats] = useState<MonitorStats>({
     typingSpeed: 0,
@@ -42,9 +44,27 @@ export function MonitoringEngine({
   const [warningCount, setWarningCount] = useState(0)
   const [riskScore, setRiskScore] = useState<string>("Normal")
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(durationMinutes * 60)
   
   const lastRiskScore = useRef<string>("Normal")
   const sessionStartTime = useRef<number>(Date.now())
+
+  // Timer logic
+  useEffect(() => {
+    if (timeLeft <= 0) return
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(0, prev - 1))
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [timeLeft])
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   // Monitoring listeners
   useEffect(() => {
@@ -186,7 +206,13 @@ export function MonitoringEngine({
                 "w-2 h-2 rounded-full animate-pulse",
                 riskScore === 'Normal' ? "bg-green-500" : "bg-orange-500"
               )} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Live Monitoring</span>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary leading-none">Live Monitoring</span>
+                <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1 mt-0.5">
+                  <Clock className="w-2.5 h-2.5" />
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
               {isAnalyzing && <Loader2 className="w-3 h-3 animate-spin text-primary/60" />}
             </div>
             <Button 
@@ -245,8 +271,11 @@ export function MonitoringEngine({
         "flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg transition-all duration-300",
         isCollapsed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
       )}>
+        <Clock className="w-3 h-3" />
+        <span className="text-[10px] font-bold uppercase tracking-widest">{formatTime(timeLeft)}</span>
+        <span className="opacity-40">|</span>
         <ShieldAlert className="w-3 h-3" />
-        <span className="text-[10px] font-bold uppercase tracking-widest">Monitored Session</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest">Monitored</span>
       </div>
     </div>
   )
