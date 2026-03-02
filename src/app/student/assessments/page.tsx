@@ -7,6 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog"
 import { getAssessments, getSessions, getStudentBaseline, getGlobalSettings, saveStudentBaseline } from "@/lib/storage"
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { useRouter } from "next/navigation"
@@ -218,12 +229,32 @@ export default function StudentAssessments() {
                       <Link href="/student/history">View Results</Link>
                     </Button>
                   ) : (
-                    <Button asChild className="gap-2 bg-primary">
-                      <Link href={`/student/assessments/${assessment.id}`}>
-                        Begin Assessment
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button className="gap-2 bg-primary">
+                          Begin Assessment
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-headline text-2xl">Confirm Start</AlertDialogTitle>
+                          <AlertDialogDescription className="text-base text-slate-600">
+                            You are about to start <span className="font-bold text-slate-900">{assessment.title}</span>. 
+                            Once you begin, the timer will start and your behavior will be monitored. 
+                            <span className="block mt-2 font-bold text-destructive">There is no going back once the session begins.</span>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="gap-2">
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction asChild className="bg-primary">
+                            <Link href={`/student/assessments/${assessment.id}`}>
+                              Start Now
+                            </Link>
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </CardContent>
               </Card>
