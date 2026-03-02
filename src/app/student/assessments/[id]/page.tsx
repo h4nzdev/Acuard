@@ -1,24 +1,34 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { FileText, Save, Send, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { MonitoringEngine } from "@/components/assessments/monitoring-engine"
-import { MOCK_ASSESSMENTS } from "@/lib/mock-data"
+import { getAssessments } from "@/lib/storage"
+import { Assessment } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
 
 export default function ActiveAssessment() {
   const params = useParams()
   const router = useRouter()
-  const assessment = MOCK_ASSESSMENTS.find(a => a.id === params.id) || MOCK_ASSESSMENTS[0]
-  
+  const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [content, setContent] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [warningCount, setWarningCount] = useState(0)
   const [riskScore, setRiskScore] = useState("Normal")
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    const data = getAssessments()
+    const found = data.find(a => a.id === params.id) || data[0]
+    setAssessment(found)
+    setIsMounted(true)
+  }, [params.id])
+
+  if (!isMounted || !assessment) return null
 
   const handleSubmit = () => {
     setIsSubmitting(true)
@@ -48,8 +58,8 @@ export default function ActiveAssessment() {
             <p className="text-sm text-muted-foreground">
               Please contact your instructor or the academic office to discuss this session. Your partial progress has been saved.
             </p>
-            <Button variant="outline" className="w-full" asChild>
-              <a href="/student/dashboard">Return to Dashboard</a>
+            <Button variant="outline" className="w-full" onClick={() => router.push('/student/dashboard')}>
+              Return to Dashboard
             </Button>
           </CardContent>
         </Card>
