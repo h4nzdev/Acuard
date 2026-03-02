@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { ShieldAlert, User, GraduationCap, Mail, Lock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 import { getStudents } from "@/lib/storage"
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const role = searchParams.get('role') || 'student'
@@ -169,5 +169,17 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
