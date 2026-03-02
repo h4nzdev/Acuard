@@ -12,7 +12,8 @@ import {
   ExternalLink,
   Search,
   BookOpen,
-  Edit
+  Edit,
+  Users
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -140,6 +141,11 @@ export default function InstructorAssessments() {
                         <DropdownMenuItem asChild>
                           <Link href={`/instructor/assessments/${assessment.id}`} className="gap-2">
                             <ExternalLink className="w-4 h-4" /> View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/instructor/assessments/${assessment.id}/students`} className="gap-2">
+                            <Users className="w-4 h-4" /> View Student Progress
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
