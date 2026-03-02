@@ -125,7 +125,11 @@ export default function NewAssessment() {
       description: instructions,
       policy: policy as any,
       durationMinutes: parseInt(duration),
-      questions
+      questions: questions.map(q => ({
+        ...q,
+        // Ensure data consistency: if policy is "Not Allowed", individual paste must be false
+        allowCopyPaste: policy === 'Not Allowed' ? false : q.allowCopyPaste
+      }))
     }
 
     saveAssessment(newAssessment)
@@ -381,19 +385,31 @@ export default function NewAssessment() {
                             </div>
                             
                             <div className="flex items-center gap-3 pt-6">
-                              <div className="flex items-center space-x-2 bg-slate-50 px-3 py-2 rounded-lg border">
+                              <div className={cn(
+                                "flex items-center space-x-2 px-3 py-2 rounded-lg border transition-all duration-200",
+                                policy === 'Not Allowed' ? "bg-slate-100 opacity-50 cursor-not-allowed" : "bg-slate-50"
+                              )}>
                                 <Checkbox 
                                   id={`copy-paste-${q.id}`} 
-                                  checked={q.allowCopyPaste}
+                                  checked={policy === 'Not Allowed' ? false : q.allowCopyPaste}
                                   onCheckedChange={(checked) => handleUpdateQuestion(q.id, { allowCopyPaste: !!checked })}
+                                  disabled={policy === 'Not Allowed'}
                                 />
                                 <Label 
                                   htmlFor={`copy-paste-${q.id}`}
-                                  className="text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                                  className={cn(
+                                    "text-xs font-bold flex items-center gap-1.5",
+                                    policy === 'Not Allowed' ? "cursor-not-allowed" : "cursor-pointer"
+                                  )}
                                 >
                                   <Copy className="w-3 h-3" /> Allow Paste
                                 </Label>
                               </div>
+                              {policy === 'Not Allowed' && (
+                                <span className="text-[10px] text-destructive font-bold uppercase animate-pulse">
+                                  Disabled by Policy
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
