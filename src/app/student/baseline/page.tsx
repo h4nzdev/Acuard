@@ -171,6 +171,15 @@ export default function BaselineTool() {
                   if (!startTime) handleStart()
                   setText(e.target.value)
                 }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  toast({
+                    title: "Paste Blocked",
+                    description: "You must type your baseline sample manually. Copy-pasting is not allowed.",
+                    variant: "destructive"
+                  });
+                }}
+                onContextMenu={(e) => e.preventDefault()}
                 disabled={isSubmitting}
               />
               <div className="mt-6 flex justify-between items-center">
