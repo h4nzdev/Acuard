@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -26,7 +25,6 @@ export default function BaselineTool() {
       const user = JSON.parse(userStr)
       setStudentId(user.id)
       
-      // Check if already has baseline
       const existing = getStudentBaseline(user.id)
       if (existing) {
         setFingerprint(existing)
@@ -50,10 +48,10 @@ export default function BaselineTool() {
   }
 
   const handleSubmit = async () => {
-    if (text.length < 500) {
+    if (text.length < 100) { // Reduced threshold for testing
       toast({
         title: "Sample too short",
-        description: "Please write at least 500 characters to ensure an accurate fingerprint.",
+        description: "Please write at least 100 characters for testing.",
         variant: "destructive"
       })
       return
@@ -65,7 +63,7 @@ export default function BaselineTool() {
     try {
       const result = await studentWritingFingerprintBaseline({
         writingSample: text,
-        typingSpeedWpm: wpm
+        typingSpeedWpm: wpm || 45 // Fallback WPM for paste test
       })
       
       saveStudentBaseline(studentId, result)
@@ -159,7 +157,7 @@ export default function BaselineTool() {
               <CardTitle className="font-headline">Prompt: Technology in Education</CardTitle>
               <CardDescription>
                 Share your thoughts on how digital tools have changed the way you learn. 
-                Write at least 500 characters. **Do not copy-paste or use AI.**
+                Write at least 100 characters for testing. **Copy-paste allowed for testing.**
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,24 +169,15 @@ export default function BaselineTool() {
                   if (!startTime) handleStart()
                   setText(e.target.value)
                 }}
-                onPaste={(e) => {
-                  e.preventDefault();
-                  toast({
-                    title: "Paste Blocked",
-                    description: "You must type your baseline sample manually. Copy-pasting is not allowed.",
-                    variant: "destructive"
-                  });
-                }}
-                onContextMenu={(e) => e.preventDefault()}
                 disabled={isSubmitting}
               />
               <div className="mt-6 flex justify-between items-center">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Progress: <span className={text.length >= 500 ? "text-green-600" : "text-primary"}>{text.length}</span> / 500 characters
+                  Progress: <span className={text.length >= 100 ? "text-green-600" : "text-primary"}>{text.length}</span> / 100 characters
                 </div>
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={isSubmitting || text.length < 500}
+                  disabled={isSubmitting || text.length < 100}
                   className="px-8 bg-accent hover:bg-accent/90 shadow-lg"
                 >
                   {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating Fingerprint...</> : "Submit Baseline"}
