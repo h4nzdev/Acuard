@@ -86,7 +86,7 @@ export default function PoliciesSettings() {
               <Building className="w-5 h-5 text-primary" />
               <CardTitle className="text-xl font-headline">Institution Profile</CardTitle>
             </div>
-            <CardDescription>General information for your AcademiaGuard instance.</CardDescription>
+            <CardDescription>General information for your Acuard instance.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

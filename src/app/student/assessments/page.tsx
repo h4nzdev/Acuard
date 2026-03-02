@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -246,7 +245,7 @@ export default function StudentAssessments() {
       <div className="bg-primary/5 p-8 rounded-2xl border border-primary/10">
         <h3 className="text-lg font-headline font-bold text-primary mb-2">Integrity Agreement</h3>
         <p className="text-sm text-muted-foreground mb-6">
-          AcademiaGuard utilizes behavioral biometrics (typing cadence, focus patterns) to verify your identity and ensure academic honesty. By starting an assessment, you agree to the following:
+          Acuard utilizes behavioral biometrics (typing cadence, focus patterns) to verify your identity and ensure academic honesty. By starting an assessment, you agree to the following:
         </p>
         <ul className="grid md:grid-cols-2 gap-4 text-xs font-bold uppercase tracking-tight text-slate-600">
           <li className="flex items-center gap-3 p-3 bg-white rounded-xl border">

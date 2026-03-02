@@ -178,7 +178,7 @@ export default function AssessmentResultDetails() {
                 
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    This activity included free-text responses (Essays, Text Areas, or Questionnaires). AcademiaGuard compared your typing dynamics and syntactic patterns against your baseline to verify that the work is your own and not AI-generated.
+                    This activity included free-text responses (Essays, Text Areas, or Questionnaires). Acuard compared your typing dynamics and syntactic patterns against your baseline to verify that the work is your own and not AI-generated.
                   </p>
                   
                   <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
@@ -352,7 +352,7 @@ export default function AssessmentResultDetails() {
 
               <div className="pt-6 border-t">
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Results are verified using AcademiaGuard behavioral fingerprinting. This report has been shared with your course instructor.
+                  Results are verified using Acuard behavioral fingerprinting. This report has been shared with your course instructor.
                 </p>
               </div>
             </CardContent>

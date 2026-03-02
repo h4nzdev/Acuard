@@ -231,7 +231,7 @@ export default function BaselineTool() {
           <div className="p-5 bg-primary/5 border border-primary/10 rounded-2xl shadow-sm">
             <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-2">Requirement</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              This baseline is mandatory. AcademiaGuard uses it to protect your academic reputation by verifying that your submitted work consistently matches your unique writing style.
+              This baseline is mandatory. Acuard uses it to protect your academic reputation by verifying that your submitted work consistently matches your unique writing style.
             </p>
           </div>
         </div>

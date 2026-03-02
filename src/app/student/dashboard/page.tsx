@@ -257,14 +257,14 @@ export default function StudentDashboard() {
         <CardContent className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <p className="text-muted-foreground font-medium text-sm">
-              AcademiaGuard works best when you focus on your work. Remember these core principles:
+              Acuard works best when you focus on your work. Remember these core principles:
             </p>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 </div>
-                <span className="text-sm text-slate-700">Minimize tab switching. AcademiaGuard logs every time you leave the assessment window.</span>
+                <span className="text-sm text-slate-700">Minimize tab switching. Acuard logs every time you leave the assessment window.</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">

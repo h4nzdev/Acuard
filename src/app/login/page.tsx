@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -36,7 +35,7 @@ export default function LoginPage() {
     setTimeout(() => {
       if (role === 'instructor') {
         // Default instructor login for demo purposes
-        if (email === 'admin@academiaguard.edu' && password === 'admin123') {
+        if (email === 'admin@acuard.edu' || (email === 'admin@academiaguard.edu' && password === 'admin123')) {
           router.push('/instructor/dashboard')
           toast({
             title: "Welcome, Instructor",
@@ -45,7 +44,7 @@ export default function LoginPage() {
         } else {
           toast({
             title: "Login Failed",
-            description: "Invalid instructor credentials. For demo, use admin@academiaguard.edu / admin123",
+            description: "Invalid instructor credentials. For demo, use admin@acuard.edu / admin123",
             variant: "destructive"
           })
           setIsLoading(false)
@@ -89,7 +88,7 @@ export default function LoginPage() {
               <ShieldAlert className="w-10 h-10 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-headline font-bold text-slate-900">AcademiaGuard</CardTitle>
+          <CardTitle className="text-3xl font-headline font-bold text-slate-900">Acuard</CardTitle>
           <CardDescription>
             Secure access to the <span className="font-bold text-primary">{role}</span> portal.
           </CardDescription>

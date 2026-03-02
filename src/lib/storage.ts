@@ -25,7 +25,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   autoLockThreshold: 3,
   notifyOnFlag: true,
   notifyOnLock: true,
-  institutionName: "AcademiaGuard University",
+  institutionName: "Acuard University",
   requireBaseline: true,
 };
 

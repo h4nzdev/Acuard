@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'AcademiaGuard | Smart Academic Integrity LMS',
+  title: 'Acuard | Smart Academic Integrity LMS',
   description: 'Advanced academic monitoring and integrity analysis system.',
 };
 

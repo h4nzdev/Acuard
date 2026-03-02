@@ -215,7 +215,7 @@ export default function StudentSessionAnalytics() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                This activity is running under **High Integrity** mode. AcademiaGuard automatically flags any browser focus loss or non-human typing speed.
+                This activity is running under **High Integrity** mode. Acuard automatically flags any browser focus loss or non-human typing speed.
               </p>
             </CardContent>
           </Card>

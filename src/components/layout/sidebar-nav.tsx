@@ -89,7 +89,7 @@ export function SidebarNav({ role }: SidebarNavProps) {
               {isExpanded ? (
                 <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
                   <ShieldAlert className="w-8 h-8 text-accent shrink-0" />
-                  <h1 className="text-xl font-headline font-bold tracking-tight">AcademiaGuard</h1>
+                  <h1 className="text-xl font-headline font-bold tracking-tight">Acuard</h1>
                 </div>
               ) : (
                 <ShieldAlert className="w-8 h-8 text-accent" />

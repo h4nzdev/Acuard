@@ -9,7 +9,7 @@ export default function Home() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-headline font-bold text-primary">AcademiaGuard</span>
+            <span className="text-2xl font-headline font-bold text-primary">Acuard</span>
           </div>
           <div className="flex gap-4">
             <Button variant="ghost" asChild>
@@ -29,7 +29,7 @@ export default function Home() {
               Upholding Academic Integrity with <span className="text-primary">Intelligence</span>.
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              AcademiaGuard uses advanced behavioral biometrics and AI-driven analysis to protect the value of credentials in the digital age.
+              Acuard uses advanced behavioral biometrics and AI-driven analysis to protect the value of credentials in the digital age.
             </p>
             <div className="flex justify-center gap-6 pt-8">
               <Button size="lg" className="px-8 py-6 text-lg h-auto" asChild>
@@ -68,7 +68,7 @@ export default function Home() {
 
       <footer className="py-12 border-t">
         <div className="container mx-auto px-6 text-center text-muted-foreground">
-          <p>© 2024 AcademiaGuard LMS. All rights reserved.</p>
+          <p>© 2024 Acuard LMS. All rights reserved.</p>
         </div>
       </footer>
     </div>
