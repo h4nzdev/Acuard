@@ -124,6 +124,12 @@ export const saveStudent = (student: Student) => {
   localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
 };
 
+export const updateStudent = (updatedStudent: Student) => {
+  const current = getStudents();
+  const updated = current.map(s => s.id === updatedStudent.id ? updatedStudent : s);
+  localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
+};
+
 export const deleteStudent = (id: string) => {
   const current = getStudents();
   const updated = current.filter(s => s.id !== id);

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -6,7 +7,7 @@ import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { updateSession, getSessions } from "@/lib/storage"
+import { updateSession, getSessions, getStudents, updateStudent } from "@/lib/storage"
 import { StudentSession } from "@/app/lib/mock-data"
 
 interface MonitorStats {
@@ -28,7 +29,7 @@ export function MonitoringEngine({
   onRiskUpdate, 
   onWarning,
   assessmentId,
-  studentId = "demo_student" // Default for hackathon
+  studentId = "demo_student"
 }: MonitoringEngineProps) {
   const [stats, setStats] = useState<MonitorStats>({
     typingSpeed: 0,
@@ -89,16 +90,30 @@ export function MonitoringEngine({
 
     // Update session in storage
     const sessions = getSessions()
-    const current = sessions.find(s => s.studentId === studentId)
+    const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
     if (current) {
       updateSession({
         ...current,
         warningCount: nextCount,
         status: nextCount >= 3 ? 'Locked' : 'Flagged',
-        violations: [...(current.violations || []), `${msg} at ${new Array(nextCount).fill('!').join('')}`],
+        violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
         pasteCount: stats.pasteFrequency,
         tabSwitchCount: stats.tabSwitchCount,
         lastActive: new Date().toLocaleTimeString()
+      })
+    }
+
+    // Update student score and flagged sessions
+    const students = getStudents()
+    const student = students.find(s => s.id === studentId)
+    if (student) {
+      const newScore = Math.max(0, student.honestyScore - 5)
+      const newFlaggedCount = nextCount >= 3 ? student.flaggedSessions + 1 : student.flaggedSessions
+      
+      updateStudent({
+        ...student,
+        honestyScore: newScore,
+        flaggedSessions: newFlaggedCount
       })
     }
   }
@@ -118,7 +133,7 @@ export function MonitoringEngine({
       try {
         const result = await predictIntegrityRiskScore({
           currentWritingSample: currentWriting,
-          baselineWritingFingerprint: "Baseline text sample for comparison...", // Mock baseline
+          baselineWritingFingerprint: "Baseline text sample for comparison...",
           typingSpeed: currentWpm,
           pasteFrequency: stats.pasteFrequency,
           tabSwitchCount: stats.tabSwitchCount
@@ -131,7 +146,7 @@ export function MonitoringEngine({
 
         // Update persistent session record
         const sessions = getSessions()
-        const current = sessions.find(s => s.studentId === studentId)
+        const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
         if (current) {
           updateSession({
             ...current,
@@ -147,10 +162,10 @@ export function MonitoringEngine({
       } finally {
         setIsAnalyzing(false)
       }
-    }, 15000) // Analyze every 15 seconds
+    }, 15000)
 
     return () => clearInterval(interval)
-  }, [currentWriting, stats.pasteFrequency, stats.tabSwitchCount, studentId])
+  }, [currentWriting, stats.pasteFrequency, stats.tabSwitchCount, studentId, assessmentId])
 
   return (
     <div className="fixed bottom-8 right-8 w-80 space-y-4 z-50 animate-in slide-in-from-bottom-4">
