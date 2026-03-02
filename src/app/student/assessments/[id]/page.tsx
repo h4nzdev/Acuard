@@ -1,64 +1,137 @@
+
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { FileText, Save, Send, AlertCircle } from "lucide-react"
+import { FileText, Save, Send, AlertCircle, Clock, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { MonitoringEngine } from "@/components/assessments/monitoring-engine"
-import { getAssessments } from "@/lib/storage"
-import { Assessment } from "@/app/lib/mock-data"
+import { getAssessments, saveSession, getSessions, updateSession } from "@/lib/storage"
+import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
 
 export default function ActiveAssessment() {
   const params = useParams()
   const router = useRouter()
   const [assessment, setAssessment] = useState<Assessment | null>(null)
-  const [content, setContent] = useState("")
+  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [warningCount, setWarningCount] = useState(0)
   const [riskScore, setRiskScore] = useState("Normal")
   const [isMounted, setIsMounted] = useState(false)
+  const [studentId, setStudentId] = useState<string>("")
+  const [studentName, setStudentName] = useState<string>("")
+
+  // Compute full text for monitoring engine analysis
+  const fullContent = Object.values(answers).join("\n\n")
 
   useEffect(() => {
+    const userStr = localStorage.getItem('ag_current_user')
+    if (!userStr) {
+      router.push('/login')
+      return
+    }
+    const user = JSON.parse(userStr)
+    setStudentId(user.id)
+    setStudentName(user.name)
+
     const data = getAssessments()
-    const found = data.find(a => a.id === params.id) || data[0]
+    const found = data.find(a => a.id === params.id)
+    
+    if (!found) {
+      toast({
+        title: "Error",
+        description: "Assessment not found.",
+        variant: "destructive"
+      })
+      router.push('/student/assessments')
+      return
+    }
+    
     setAssessment(found)
+
+    // Check if session already exists or initialize it
+    const sessions = getSessions()
+    const existing = sessions.find(s => s.assessmentId === found.id && s.studentId === user.id)
+    
+    if (!existing) {
+      const newSession: StudentSession = {
+        studentId: user.id,
+        studentName: user.name,
+        assessmentId: found.id,
+        assessmentTitle: found.title,
+        status: 'In Progress',
+        riskScore: 'Normal',
+        warningCount: 0,
+        lastActive: new Date().toLocaleTimeString(),
+        typingSpeed: 0,
+        pasteCount: 0,
+        tabSwitchCount: 0,
+        violations: []
+      }
+      saveSession(newSession)
+    } else if (existing.status === 'Locked') {
+      setWarningCount(3)
+    } else {
+      setWarningCount(existing.warningCount)
+      setRiskScore(existing.riskScore)
+    }
+
     setIsMounted(true)
-  }, [params.id])
+  }, [params.id, router])
 
   if (!isMounted || !assessment) return null
 
+  const handleUpdateAnswer = (id: string, value: string) => {
+    setAnswers(prev => ({ ...prev, [id]: value }))
+  }
+
   const handleSubmit = () => {
     setIsSubmitting(true)
+    
+    // Update session to completed
+    const sessions = getSessions()
+    const current = sessions.find(s => s.assessmentId === assessment.id && s.studentId === studentId)
+    if (current) {
+      updateSession({
+        ...current,
+        status: 'Completed',
+        lastActive: new Date().toLocaleTimeString()
+      })
+    }
+
     setTimeout(() => {
       toast({
         title: "Assessment Submitted",
         description: "Your work has been securely uploaded and flagged for review."
       })
       router.push('/student/dashboard')
-    }, 2000)
+    }, 1500)
   }
 
   if (warningCount >= 3) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md text-center border-destructive shadow-2xl">
+      <div className="flex items-center justify-center min-h-[80vh] p-6">
+        <Card className="max-w-md w-full text-center border-destructive shadow-2xl ring-4 ring-destructive/10">
           <CardHeader>
-            <div className="flex justify-center mb-4">
-              <AlertCircle className="w-16 h-16 text-destructive" />
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-destructive/10 rounded-full">
+                <AlertCircle className="w-16 h-16 text-destructive" />
+              </div>
             </div>
-            <CardTitle className="text-2xl font-headline font-bold text-destructive">Session Locked</CardTitle>
-            <CardDescription>
-              Your session has been terminated due to multiple integrity violations.
+            <CardTitle className="text-3xl font-headline font-bold text-destructive">Assessment Locked</CardTitle>
+            <CardDescription className="text-base">
+              This session has been automatically terminated due to multiple policy violations.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Please contact your instructor or the academic office to discuss this session. Your partial progress has been saved.
-            </p>
-            <Button variant="outline" className="w-full" onClick={() => router.push('/student/dashboard')}>
+          <CardContent className="space-y-6">
+            <div className="p-4 bg-slate-50 rounded-xl text-sm text-slate-600 leading-relaxed">
+              Your proctor has been notified. Any work completed up to this point has been saved for instructor review.
+            </div>
+            <Button variant="outline" className="w-full h-11 font-bold" onClick={() => router.push('/student/dashboard')}>
               Return to Dashboard
             </Button>
           </CardContent>
@@ -68,53 +141,89 @@ export default function ActiveAssessment() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-32">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border sticky top-8 z-40">
+    <div className="max-w-4xl mx-auto space-y-8 pb-32 pt-4">
+      <div className="flex justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border sticky top-4 z-40">
         <div className="flex items-center gap-4">
-          <div className="p-2 bg-primary/10 rounded-lg">
+          <div className="p-3 bg-primary/10 rounded-xl">
             <FileText className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-headline font-bold">{assessment.title}</h1>
-            <p className="text-xs text-muted-foreground">Policy: {assessment.policy} • Ends in 45:00</p>
+            <h1 className="text-2xl font-headline font-bold text-slate-900">{assessment.title}</h1>
+            <div className="flex items-center gap-3 mt-1">
+              <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tighter">
+                {assessment.policy} Policy
+              </Badge>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {assessment.durationMinutes}:00 Remaining
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
+          <Button variant="ghost" className="gap-2 font-bold text-slate-600">
             <Save className="w-4 h-4" />
             Save Draft
           </Button>
-          <Button className="gap-2 bg-accent hover:bg-accent/90" onClick={handleSubmit} disabled={isSubmitting}>
-            <Send className="w-4 h-4" />
-            Submit Assessment
+          <Button className="gap-2 bg-accent hover:bg-accent/90 shadow-md font-bold" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? <span className="animate-pulse">Uploading...</span> : <><Send className="w-4 h-4" /> Submit</>}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <Card className="min-h-[600px] shadow-xl border-t-4 border-t-primary">
-          <CardHeader>
-            <CardTitle className="text-xl font-headline">Assessment Content</CardTitle>
-            <CardDescription>
-              Write your response below. Be descriptive and follow the guidelines.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea 
-              placeholder="Begin typing your assessment here..."
-              className="min-h-[500px] text-lg leading-relaxed focus-visible:ring-accent"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onContextMenu={(e) => assessment.policy === 'Not Allowed' && e.preventDefault()}
-            />
-          </CardContent>
-        </Card>
+      <div className="space-y-8">
+        {assessment.description && (
+          <Card className="bg-slate-50/50 border-none ring-1 ring-slate-200">
+            <CardContent className="p-6 flex gap-4">
+              <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm text-slate-600 leading-relaxed italic">{assessment.description}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {assessment.questions && assessment.questions.length > 0 ? (
+          assessment.questions.map((q, index) => (
+            <Card key={q.id} className="shadow-lg border-none ring-1 ring-slate-200 overflow-hidden">
+              <div className="h-1 bg-primary/20" />
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Question {index + 1}</span>
+                  <Badge variant="secondary" className="text-[10px] font-bold uppercase">{q.points} Points</Badge>
+                </div>
+                <CardTitle className="text-lg font-headline font-bold text-slate-800 leading-snug">
+                  {q.text}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea 
+                  placeholder="Enter your response here..."
+                  className="min-h-[200px] text-base leading-relaxed focus-visible:ring-accent"
+                  value={answers[q.id] || ""}
+                  onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                  onContextMenu={(e) => !q.allowCopyPaste && e.preventDefault()}
+                  onPaste={(e) => !q.allowCopyPaste && e.preventDefault()}
+                />
+                {!q.allowCopyPaste && (
+                  <p className="text-[10px] text-destructive font-black uppercase mt-3 flex items-center gap-1.5">
+                    <AlertCircle className="w-3 h-3" /> Copy-Paste is strictly disabled for this item.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed">
+            <p className="text-muted-foreground italic">No questions found in this assessment.</p>
+          </div>
+        )}
       </div>
 
       <MonitoringEngine 
-        currentWriting={content}
+        currentWriting={fullContent}
         onRiskUpdate={setRiskScore}
         onWarning={setWarningCount}
+        assessmentId={assessment.id}
+        studentId={studentId}
       />
     </div>
   )

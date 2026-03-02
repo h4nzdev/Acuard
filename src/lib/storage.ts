@@ -1,3 +1,4 @@
+
 import { Assessment, StudentSession, Student } from "@/app/lib/mock-data";
 
 const STORAGE_KEYS = {
@@ -68,19 +69,36 @@ export const getSessions = (): StudentSession[] => {
 
 export const saveSession = (session: StudentSession) => {
   const current = getSessions();
-  const updated = [...current, session];
+  // Ensure we don't duplicate sessions for same student/assessment
+  const exists = current.findIndex(s => s.studentId === session.studentId && s.assessmentId === session.assessmentId);
+  let updated;
+  if (exists >= 0) {
+    updated = [...current];
+    updated[exists] = session;
+  } else {
+    updated = [...current, session];
+  }
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
 };
 
 export const updateSession = (updatedSession: StudentSession) => {
   const current = getSessions();
-  const updated = current.map(s => s.studentId === updatedSession.studentId ? updatedSession : s);
+  const updated = current.map(s => 
+    (s.studentId === updatedSession.studentId && s.assessmentId === updatedSession.assessmentId) 
+      ? updatedSession 
+      : s
+  );
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
 };
 
-export const deleteSession = (studentId: string) => {
+export const deleteSession = (studentId: string, assessmentId?: string) => {
   const current = getSessions();
-  const updated = current.filter(s => s.studentId !== studentId);
+  const updated = current.filter(s => {
+    if (assessmentId) {
+      return !(s.studentId === studentId && s.assessmentId === assessmentId);
+    }
+    return s.studentId !== studentId;
+  });
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
 };
 
