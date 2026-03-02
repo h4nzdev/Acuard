@@ -26,6 +26,10 @@ interface SidebarNavProps {
 export function SidebarNav({ role }: SidebarNavProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+
+  // The sidebar is visually expanded if it's either not manually collapsed OR if the user is hovering.
+  const isExpanded = !isCollapsed || isHovered
 
   const links = role === 'instructor' ? [
     { href: "/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -42,78 +46,96 @@ export function SidebarNav({ role }: SidebarNavProps) {
   return (
     <div 
       className={cn(
-        "flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl transition-all duration-300 ease-in-out shrink-0",
+        "relative flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl transition-all duration-300 ease-in-out shrink-0 z-50",
         isCollapsed ? "w-20" : "w-64"
       )}
+      onMouseEnter={() => isCollapsed && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="p-4 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-8 min-h-[40px]">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-              <ShieldAlert className="w-8 h-8 text-accent shrink-0" />
-              <h1 className="text-xl font-headline font-bold tracking-tight">AcademiaGuard</h1>
-            </div>
-          )}
-          {isCollapsed && (
-            <div className="mx-auto">
-              <ShieldAlert className="w-8 h-8 text-accent" />
-            </div>
-          )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={cn(
-              "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-              isCollapsed && "absolute -right-3 top-20 bg-sidebar border border-sidebar-border rounded-full shadow-md z-10 w-6 h-6"
+      {/* The actual content container that expands on hover */}
+      <div 
+        className={cn(
+          "absolute top-0 left-0 h-full flex flex-col bg-sidebar border-r border-sidebar-border shadow-xl transition-all duration-300 ease-in-out overflow-hidden",
+          isExpanded ? "w-64" : "w-20"
+        )}
+      >
+        <div className="p-4 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-8 min-h-[40px]">
+            {isExpanded ? (
+              <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
+                <ShieldAlert className="w-8 h-8 text-accent shrink-0" />
+                <h1 className="text-xl font-headline font-bold tracking-tight">AcademiaGuard</h1>
+              </div>
+            ) : (
+              <div className="mx-auto">
+                <ShieldAlert className="w-8 h-8 text-accent" />
+              </div>
             )}
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </Button>
-        </div>
-        
-        <nav className="space-y-2 flex-1">
-          {links.map((link) => {
-            const Icon = link.icon
-            const isActive = pathname === link.href
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200",
-                  isActive 
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg scale-[1.02]" 
-                    : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground opacity-80 hover:opacity-100",
-                  isCollapsed && "justify-center px-0"
-                )}
-                title={isCollapsed ? link.label : undefined}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span className="font-medium text-sm overflow-hidden whitespace-nowrap">{link.label}</span>}
-              </Link>
-            )
-          })}
-        </nav>
-
-        <div className="mt-auto pt-6 border-t border-sidebar-border">
-          <div className={cn(
-            "flex items-center gap-3 px-4 py-3 opacity-80 hover:opacity-100 cursor-pointer mb-2 rounded-md hover:bg-sidebar-accent",
-            isCollapsed && "justify-center px-0"
-          )}>
-            <User className="w-5 h-5 shrink-0" />
-            {!isCollapsed && <span className="text-sm font-medium">Profile</span>}
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsCollapsed(!isCollapsed);
+                if (!isCollapsed) setIsHovered(false); // Reset hover if we manually expand
+              }}
+              className={cn(
+                "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all",
+                !isExpanded && "absolute -right-3 top-20 bg-sidebar border border-sidebar-border rounded-full shadow-md z-10 w-6 h-6"
+              )}
+            >
+              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </Button>
           </div>
-          <Link 
-            href="/" 
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 opacity-80 hover:opacity-100 cursor-pointer text-red-300 rounded-md hover:bg-sidebar-accent",
-              isCollapsed && "justify-center px-0"
-            )}
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {!isCollapsed && <span className="text-sm font-medium">Log out</span>}
-          </Link>
+          
+          <nav className="space-y-2 flex-1">
+            {links.map((link) => {
+              const Icon = link.icon
+              const isActive = pathname === link.href
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 group",
+                    isActive 
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg scale-[1.02]" 
+                      : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground opacity-80 hover:opacity-100",
+                    !isExpanded && "justify-center px-0"
+                  )}
+                  title={!isExpanded ? link.label : undefined}
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {isExpanded && (
+                    <span className="font-medium text-sm overflow-hidden whitespace-nowrap animate-in slide-in-from-left-2 duration-200">
+                      {link.label}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+          </nav>
+
+          <div className="mt-auto pt-6 border-t border-sidebar-border">
+            <div className={cn(
+              "flex items-center gap-3 px-4 py-3 opacity-80 hover:opacity-100 cursor-pointer mb-2 rounded-md hover:bg-sidebar-accent",
+              !isExpanded && "justify-center px-0"
+            )}>
+              <User className="w-5 h-5 shrink-0" />
+              {isExpanded && <span className="text-sm font-medium animate-in fade-in duration-200">Profile</span>}
+            </div>
+            <Link 
+              href="/" 
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 opacity-80 hover:opacity-100 cursor-pointer text-red-300 rounded-md hover:bg-sidebar-accent",
+                !isExpanded && "justify-center px-0"
+              )}
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+              {isExpanded && <span className="text-sm font-medium animate-in fade-in duration-200">Log out</span>}
+            </Link>
+          </div>
         </div>
       </div>
     </div>
