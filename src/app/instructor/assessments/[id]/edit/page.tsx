@@ -82,7 +82,7 @@ function EditAssessmentForm() {
       allowCopyPaste: false,
       correctAnswer: "",
       choices: ["", "", "", ""],
-      choiceType: 'ABCD'
+      choiceType: 'True/False'
     }
     setQuestions([...questions, newQuestion])
   }
@@ -93,7 +93,7 @@ function EditAssessmentForm() {
         const updated = { ...q, ...updates }
         if (updated.type === 'Multiple Choice' && !updated.choices) {
           updated.choices = ["", "", "", ""]
-          updated.choiceType = updated.choiceType || 'ABCD'
+          updated.choiceType = updated.choiceType || 'True/False'
         }
         return updated
       }
@@ -431,37 +431,39 @@ function EditAssessmentForm() {
                                 className="flex gap-4"
                               >
                                 <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="ABCD" id={`edit-choice-abcd-${q.id}`} />
-                                  <Label htmlFor={`edit-choice-abcd-${q.id}`} className="text-xs font-bold cursor-pointer">A-B-C-D</Label>
+                                  <RadioGroupItem value="True/False" id={`edit-choice-tf-${q.id}`} />
+                                  <Label htmlFor={`edit-choice-tf-${q.id}`} className="text-xs font-bold cursor-pointer">True / False</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <RadioGroupItem value="Custom" id={`edit-choice-custom-${q.id}`} />
-                                  <Label htmlFor={`edit-choice-custom-${q.id}`} className="text-xs font-bold cursor-pointer">Custom Labels</Label>
+                                  <Label htmlFor={`edit-choice-custom-${q.id}`} className="text-xs font-bold cursor-pointer">4 Custom Labels</Label>
                                 </div>
                               </RadioGroup>
                             </div>
                             
-                            <div className="grid grid-cols-1 gap-3">
-                              {(q.choices || ["", "", "", ""]).map((choice, cIdx) => (
-                                <div key={cIdx} className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                                    {String.fromCharCode(65 + cIdx)}
-                                  </div>
-                                  {q.choiceType === 'Custom' ? (
+                            {q.choiceType === 'Custom' && (
+                              <div className="grid grid-cols-1 gap-3">
+                                {(q.choices || ["", "", "", ""]).map((choice, cIdx) => (
+                                  <div key={cIdx} className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                                      {String.fromCharCode(65 + cIdx)}
+                                    </div>
                                     <Input 
                                       placeholder={`Choice ${String.fromCharCode(65 + cIdx)} content...`}
                                       value={choice}
                                       onChange={(e) => handleChoiceUpdate(q.id, cIdx, e.target.value)}
                                       className="h-9"
                                     />
-                                  ) : (
-                                    <div className="text-sm font-medium text-slate-500 italic">
-                                      Fixed Label: {String.fromCharCode(65 + cIdx)}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {q.choiceType === 'True/False' && (
+                              <div className="text-sm font-medium text-slate-500 italic p-2 border border-dashed rounded bg-slate-100/50">
+                                Options will be fixed as "True" and "False".
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -473,18 +475,31 @@ function EditAssessmentForm() {
                             <RadioGroup 
                               value={q.correctAnswer} 
                               onValueChange={(val) => handleUpdateQuestion(q.id, { correctAnswer: val })}
-                              className="grid grid-cols-4 gap-2"
+                              className="flex flex-wrap gap-4"
                             >
-                              {[0, 1, 2, 3].map((idx) => {
-                                const label = String.fromCharCode(65 + idx)
-                                const value = q.choiceType === 'Custom' ? q.choices?.[idx] || label : label
-                                return (
-                                  <div key={idx} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={value} id={`edit-correct-${q.id}-${idx}`} />
-                                    <Label htmlFor={`edit-correct-${q.id}-${idx}`} className="text-xs font-medium">{label}</Label>
+                              {q.choiceType === 'True/False' ? (
+                                <>
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="True" id={`edit-correct-true-${q.id}`} />
+                                    <Label htmlFor={`edit-correct-true-${q.id}`} className="text-xs font-medium">True</Label>
                                   </div>
-                                )
-                              })}
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="False" id={`edit-correct-false-${q.id}`} />
+                                    <Label htmlFor={`edit-correct-false-${q.id}`} className="text-xs font-medium">False</Label>
+                                  </div>
+                                </>
+                              ) : (
+                                [0, 1, 2, 3].map((idx) => {
+                                  const label = String.fromCharCode(65 + idx)
+                                  const value = q.choices?.[idx] || label
+                                  return (
+                                    <div key={idx} className="flex items-center space-x-2">
+                                      <RadioGroupItem value={value} id={`edit-correct-${q.id}-${idx}`} disabled={!value} />
+                                      <Label htmlFor={`edit-correct-${q.id}-${idx}`} className="text-xs font-medium">{label}</Label>
+                                    </div>
+                                  )
+                                })
+                              )}
                             </RadioGroup>
                           ) : (
                             <Textarea 

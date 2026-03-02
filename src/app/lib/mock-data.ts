@@ -6,7 +6,7 @@ export interface Question {
   allowCopyPaste: boolean;
   correctAnswer: string;
   choices?: string[];
-  choiceType?: 'ABCD' | 'Custom';
+  choiceType?: 'True/False' | 'Custom';
 }
 
 export interface Assessment {

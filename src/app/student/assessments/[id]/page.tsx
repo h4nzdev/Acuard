@@ -202,19 +202,31 @@ export default function ActiveAssessment() {
                     onValueChange={(val) => handleUpdateAnswer(q.id, val)}
                     className="space-y-3"
                   >
-                    {[0, 1, 2, 3].map((idx) => {
-                      const choiceLabel = String.fromCharCode(65 + idx)
-                      const choiceValue = q.choiceType === 'Custom' ? q.choices?.[idx] || choiceLabel : choiceLabel
-                      return (
-                        <div key={idx} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
-                          <RadioGroupItem value={choiceValue} id={`q-${q.id}-choice-${idx}`} />
-                          <Label htmlFor={`q-${q.id}-choice-${idx}`} className="flex-1 font-medium cursor-pointer">
-                            <span className="text-primary mr-2 font-bold">{choiceLabel}.</span>
-                            {q.choiceType === 'Custom' ? choiceValue : `Option ${choiceLabel}`}
-                          </Label>
+                    {q.choiceType === 'True/False' ? (
+                      <>
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                          <RadioGroupItem value="True" id={`q-${q.id}-choice-true`} />
+                          <Label htmlFor={`q-${q.id}-choice-true`} className="flex-1 font-medium cursor-pointer">True</Label>
                         </div>
-                      )
-                    })}
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                          <RadioGroupItem value="False" id={`q-${q.id}-choice-false`} />
+                          <Label htmlFor={`q-${q.id}-choice-false`} className="flex-1 font-medium cursor-pointer">False</Label>
+                        </div>
+                      </>
+                    ) : (
+                      (q.choices || ["", "", "", ""]).map((choice, idx) => {
+                        const choiceLabel = String.fromCharCode(65 + idx)
+                        return (
+                          <div key={idx} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                            <RadioGroupItem value={choice} id={`q-${q.id}-choice-${idx}`} disabled={!choice} />
+                            <Label htmlFor={`q-${q.id}-choice-${idx}`} className="flex-1 font-medium cursor-pointer">
+                              <span className="text-primary mr-2 font-bold">{choiceLabel}.</span>
+                              {choice}
+                            </Label>
+                          </div>
+                        )
+                      })
+                    )}
                   </RadioGroup>
                 ) : (
                   <Textarea 
