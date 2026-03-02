@@ -14,7 +14,7 @@ import {
   BookOpen,
   Edit
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -54,13 +54,13 @@ export default function InstructorAssessments() {
   if (!isMounted) return null
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-headline font-bold text-slate-900">Assessment Management</h2>
           <p className="text-muted-foreground">Create and manage your course modules and integrity policies.</p>
         </div>
-        <Button asChild className="gap-2 bg-accent hover:bg-accent/90">
+        <Button asChild className="gap-2 bg-accent hover:bg-accent/90 shadow-md">
           <Link href="/instructor/assessments/new">
             <Plus className="w-4 h-4" />
             Create Assessment
@@ -83,14 +83,14 @@ export default function InstructorAssessments() {
       <div className="grid gap-6">
         {filteredAssessments.length > 0 ? (
           filteredAssessments.map((assessment) => (
-            <Card key={assessment.id} className="hover:shadow-md transition-shadow duration-300 overflow-hidden">
+            <Card key={assessment.id} className="hover:shadow-md transition-shadow duration-300 overflow-hidden border-none ring-1 ring-slate-200">
               <CardContent className="p-0">
                 <div className="flex items-center p-6 gap-6">
                   <Link 
                     href={`/instructor/assessments/${assessment.id}`}
                     className="flex items-center gap-6 flex-1 group"
                   >
-                    <div className="p-4 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                    <div className="p-4 bg-primary/5 rounded-xl group-hover:bg-primary/10 transition-colors">
                       <FileText className="w-8 h-8 text-primary" />
                     </div>
                     
@@ -111,11 +111,11 @@ export default function InstructorAssessments() {
                         {assessment.description || "No description provided."}
                       </p>
                       <div className="flex items-center gap-4 pt-2">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                           <Clock className="w-3 h-3" />
                           {assessment.durationMinutes} Minutes
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                           <Shield className="w-3 h-3" />
                           {assessment.questions?.length || 0} Questions
                         </div>
@@ -124,7 +124,7 @@ export default function InstructorAssessments() {
                   </Link>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" asChild className="font-bold">
                       <Link href={`/instructor/assessments/${assessment.id}/edit`} className="gap-2">
                         <Edit className="w-4 h-4" />
                         Edit
@@ -143,7 +143,7 @@ export default function InstructorAssessments() {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className="gap-2 text-destructive"
+                          className="gap-2 text-destructive focus:text-destructive"
                           onClick={() => handleDelete(assessment.id)}
                         >
                           <Trash2 className="w-4 h-4" /> Delete Assessment
@@ -156,20 +156,22 @@ export default function InstructorAssessments() {
             </Card>
           ))
         ) : (
-          <div className="text-center py-24 bg-white rounded-2xl border-2 border-dashed flex flex-col items-center gap-6">
-            <div className="p-6 bg-slate-50 rounded-full">
-              <BookOpen className="w-12 h-12 text-slate-300" />
+          <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed flex flex-col items-center gap-6 shadow-sm">
+            <div className="p-8 bg-slate-50 rounded-full">
+              <BookOpen className="w-16 h-16 text-slate-200" />
             </div>
-            <div className="max-w-xs space-y-2">
-              <h3 className="text-lg font-bold text-slate-900">No assessments found</h3>
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? `No results for "${searchQuery}"` : "Get started by creating your first course assessment module."}
+            <div className="max-w-sm space-y-2">
+              <h3 className="text-2xl font-headline font-bold text-slate-900">No assessment yet</h3>
+              <p className="text-muted-foreground text-sm">
+                {searchQuery 
+                  ? `No results found for "${searchQuery}". Try a different search term.` 
+                  : "You haven't created any modules yet. Get started by defining your first assessment and integrity policy."}
               </p>
             </div>
             {!searchQuery && (
-              <Button asChild className="gap-2">
+              <Button asChild className="gap-2 px-8 py-6 h-auto text-lg" size="lg">
                 <Link href="/instructor/assessments/new">
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-5 h-5" />
                   Create First Assessment
                 </Link>
               </Button>

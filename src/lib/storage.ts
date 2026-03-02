@@ -5,7 +5,7 @@ const STORAGE_KEYS = {
   SESSIONS: 'ag_sessions',
 };
 
-// Start at 0: No initial mock data
+// Explicitly start with empty arrays for a fresh experience
 const INITIAL_ASSESSMENTS: Assessment[] = [];
 const INITIAL_SESSIONS: StudentSession[] = [];
 
@@ -16,7 +16,12 @@ export const getAssessments = (): Assessment[] => {
     localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(INITIAL_ASSESSMENTS));
     return INITIAL_ASSESSMENTS;
   }
-  return JSON.parse(stored);
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    console.error("Failed to parse assessments from storage", e);
+    return [];
+  }
 };
 
 export const saveAssessment = (assessment: Assessment) => {
@@ -38,7 +43,12 @@ export const getSessions = (): StudentSession[] => {
     localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(INITIAL_SESSIONS));
     return INITIAL_SESSIONS;
   }
-  return JSON.parse(stored);
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    console.error("Failed to parse sessions from storage", e);
+    return [];
+  }
 };
 
 export const saveSession = (session: StudentSession) => {
