@@ -6,6 +6,8 @@ import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { updateSession, getSessions } from "@/lib/storage"
+import { StudentSession } from "@/app/lib/mock-data"
 
 interface MonitorStats {
   typingSpeed: number
@@ -17,9 +19,17 @@ interface MonitoringEngineProps {
   currentWriting: string
   onRiskUpdate: (score: string) => void
   onWarning: (count: number) => void
+  assessmentId?: string
+  studentId?: string
 }
 
-export function MonitoringEngine({ currentWriting, onRiskUpdate, onWarning }: MonitoringEngineProps) {
+export function MonitoringEngine({ 
+  currentWriting, 
+  onRiskUpdate, 
+  onWarning,
+  assessmentId,
+  studentId = "demo_student" // Default for hackathon
+}: MonitoringEngineProps) {
   const [stats, setStats] = useState<MonitorStats>({
     typingSpeed: 0,
     pasteFrequency: 0,
@@ -76,6 +86,21 @@ export function MonitoringEngine({ currentWriting, onRiskUpdate, onWarning }: Mo
         variant: "destructive"
       })
     }
+
+    // Update session in storage
+    const sessions = getSessions()
+    const current = sessions.find(s => s.studentId === studentId)
+    if (current) {
+      updateSession({
+        ...current,
+        warningCount: nextCount,
+        status: nextCount >= 3 ? 'Locked' : 'Flagged',
+        violations: [...(current.violations || []), `${msg} at ${new Array(nextCount).fill('!').join('')}`],
+        pasteCount: stats.pasteFrequency,
+        tabSwitchCount: stats.tabSwitchCount,
+        lastActive: new Date().toLocaleTimeString()
+      })
+    }
   }
 
   // Calculate WPM and analyze risk periodically
@@ -85,7 +110,7 @@ export function MonitoringEngine({ currentWriting, onRiskUpdate, onWarning }: Mo
 
       const elapsedMinutes = (Date.now() - sessionStartTime.current) / 60000
       const words = currentWriting.trim().split(/\s+/).length
-      const currentWpm = Math.round(words / elapsedMinutes)
+      const currentWpm = Math.round(words / (elapsedMinutes || 1))
 
       setStats(prev => ({ ...prev, typingSpeed: currentWpm }))
 
@@ -103,6 +128,20 @@ export function MonitoringEngine({ currentWriting, onRiskUpdate, onWarning }: Mo
           onRiskUpdate(result.riskScore)
           lastRiskScore.current = result.riskScore
         }
+
+        // Update persistent session record
+        const sessions = getSessions()
+        const current = sessions.find(s => s.studentId === studentId)
+        if (current) {
+          updateSession({
+            ...current,
+            riskScore: result.riskScore as any,
+            typingSpeed: currentWpm,
+            pasteCount: stats.pasteFrequency,
+            tabSwitchCount: stats.tabSwitchCount,
+            lastActive: new Date().toLocaleTimeString()
+          })
+        }
       } catch (err) {
         console.error("Risk analysis failed", err)
       } finally {
@@ -111,7 +150,7 @@ export function MonitoringEngine({ currentWriting, onRiskUpdate, onWarning }: Mo
     }, 15000) // Analyze every 15 seconds
 
     return () => clearInterval(interval)
-  }, [currentWriting, stats.pasteFrequency, stats.tabSwitchCount])
+  }, [currentWriting, stats.pasteFrequency, stats.tabSwitchCount, studentId])
 
   return (
     <div className="fixed bottom-8 right-8 w-80 space-y-4 z-50 animate-in slide-in-from-bottom-4">

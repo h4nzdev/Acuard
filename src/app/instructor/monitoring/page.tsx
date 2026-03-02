@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Eye, ShieldAlert, MoreVertical, RefreshCw, Filter, Search, Inbox } from "lucide-react"
 import { 
   Table, 
@@ -67,10 +68,10 @@ export default function LiveMonitoring() {
             <TableHeader className="bg-slate-50/50">
               <TableRow>
                 <TableHead className="font-bold py-5">Student</TableHead>
+                <TableHead className="font-bold">Assessment</TableHead>
                 <TableHead className="font-bold">Status</TableHead>
                 <TableHead className="font-bold">Risk Score</TableHead>
                 <TableHead className="font-bold">Warnings</TableHead>
-                <TableHead className="font-bold">Last Activity</TableHead>
                 <TableHead className="text-right font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -82,6 +83,9 @@ export default function LiveMonitoring() {
                       <span className="font-bold text-slate-800">{session.studentName}</span>
                       <span className="text-xs text-muted-foreground uppercase tracking-tight">ID: {session.studentId}</span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm font-medium">{session.assessmentTitle}</span>
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={session.status} />
@@ -101,13 +105,12 @@ export default function LiveMonitoring() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    Just now
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" title="View details">
-                        <Eye className="w-4 h-4 text-primary" />
+                      <Button variant="ghost" size="icon" title="View details" asChild>
+                        <Link href={`/instructor/monitoring/${session.studentId}`}>
+                          <Eye className="w-4 h-4 text-primary" />
+                        </Link>
                       </Button>
                       <Button variant="ghost" size="icon">
                         <MoreVertical className="w-4 h-4" />

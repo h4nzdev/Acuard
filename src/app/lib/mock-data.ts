@@ -15,15 +15,20 @@ export interface Assessment {
   questions: Question[];
 }
 
-export const MOCK_ASSESSMENTS: Assessment[] = [];
-export const MOCK_SESSIONS: StudentSession[] = [];
-
 export interface StudentSession {
   studentId: string;
   studentName: string;
   assessmentId: string;
+  assessmentTitle: string;
   status: 'In Progress' | 'Completed' | 'Flagged' | 'Locked';
   riskScore: 'Normal' | 'Suspicious' | 'Highly Suspicious';
   warningCount: number;
-  lastActive: Date;
+  lastActive: string;
+  typingSpeed: number;
+  pasteCount: number;
+  tabSwitchCount: number;
+  violations: string[];
 }
+
+export const MOCK_ASSESSMENTS: Assessment[] = [];
+export const MOCK_SESSIONS: StudentSession[] = [];
