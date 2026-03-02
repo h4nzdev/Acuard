@@ -14,7 +14,8 @@ import {
   Image as ImageIcon, 
   Upload, 
   Loader2,
-  FileText
+  FileText,
+  Copy
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
 import { saveAssessment } from "@/lib/storage"
 import { Assessment, Question } from "@/app/lib/mock-data"
@@ -47,17 +49,15 @@ export default function NewAssessment() {
     const newQuestion: Question = {
       id: Math.random().toString(36).substr(2, 9),
       text: "",
-      points: 10
+      points: 10,
+      type: 'Questionnaire',
+      allowCopyPaste: false
     }
     setQuestions([...questions, newQuestion])
   }
 
-  const handleUpdateQuestion = (id: string, text: string) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, text } : q))
-  }
-
-  const handleUpdatePoints = (id: string, points: number) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, points } : q))
+  const handleUpdateQuestion = (id: string, updates: Partial<Question>) => {
+    setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q))
   }
 
   const handleRemoveQuestion = (id: string) => {
@@ -77,7 +77,9 @@ export default function NewAssessment() {
         const ocrQuestions = result.questions.map(q => ({
           id: Math.random().toString(36).substr(2, 9),
           text: q.text,
-          points: q.points
+          points: q.points,
+          type: 'Questionnaire' as const,
+          allowCopyPaste: false
         }))
         setQuestions([...questions, ...ocrQuestions])
         toast({
@@ -310,14 +312,14 @@ export default function NewAssessment() {
                     </div>
                   ) : (
                     questions.map((q, index) => (
-                      <div key={q.id} className="p-4 border rounded-xl bg-white shadow-sm space-y-4">
+                      <div key={q.id} className="p-4 border rounded-xl bg-white shadow-sm space-y-6">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 space-y-2">
                             <Label className="text-xs uppercase font-bold text-muted-foreground">Question {index + 1}</Label>
                             <Textarea 
                               placeholder="Type your question here..." 
                               value={q.text}
-                              onChange={(e) => handleUpdateQuestion(q.id, e.target.value)}
+                              onChange={(e) => handleUpdateQuestion(q.id, { text: e.target.value })}
                               className="min-h-[80px]"
                             />
                           </div>
@@ -325,15 +327,52 @@ export default function NewAssessment() {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
-                        <div className="flex items-center gap-4 w-32">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Points</Label>
-                            <Input 
-                              type="number" 
-                              value={q.points}
-                              onChange={(e) => handleUpdatePoints(q.id, parseInt(e.target.value))}
-                              className="h-8"
-                            />
+                        
+                        <div className="grid grid-cols-2 gap-6 pt-4 border-t">
+                          <div className="space-y-3">
+                            <Label className="text-xs uppercase font-bold text-muted-foreground">Response Type</Label>
+                            <RadioGroup 
+                              value={q.type} 
+                              onValueChange={(val) => handleUpdateQuestion(q.id, { type: val as any })}
+                              className="flex gap-4"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Questionnaire" id={`q-type-q-${q.id}`} />
+                                <Label htmlFor={`q-type-q-${q.id}`} className="font-medium">Questionnaire</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Text Area" id={`q-type-t-${q.id}`} />
+                                <Label htmlFor={`q-type-t-${q.id}`} className="font-medium">Text Area</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+                          
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-xs uppercase font-bold text-muted-foreground">Points</Label>
+                              <Input 
+                                type="number" 
+                                value={q.points}
+                                onChange={(e) => handleUpdateQuestion(q.id, { points: parseInt(e.target.value) })}
+                                className="h-9 w-24"
+                              />
+                            </div>
+                            
+                            <div className="flex items-center gap-3 pt-6">
+                              <div className="flex items-center space-x-2 bg-slate-50 px-3 py-2 rounded-lg border">
+                                <Checkbox 
+                                  id={`copy-paste-${q.id}`} 
+                                  checked={q.allowCopyPaste}
+                                  onCheckedChange={(checked) => handleUpdateQuestion(q.id, { allowCopyPaste: !!checked })}
+                                />
+                                <Label 
+                                  htmlFor={`copy-paste-${q.id}`}
+                                  className="text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Copy className="w-3 h-3" /> Allow Paste
+                                </Label>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

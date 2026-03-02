@@ -2,6 +2,8 @@ export interface Question {
   id: string;
   text: string;
   points: number;
+  type: 'Questionnaire' | 'Text Area';
+  allowCopyPaste: boolean;
 }
 
 export interface Assessment {
@@ -13,6 +15,9 @@ export interface Assessment {
   questions: Question[];
 }
 
+export const MOCK_ASSESSMENTS: Assessment[] = [];
+export const MOCK_SESSIONS: StudentSession[] = [];
+
 export interface StudentSession {
   studentId: string;
   studentName: string;
@@ -22,6 +27,3 @@ export interface StudentSession {
   warningCount: number;
   lastActive: Date;
 }
-
-export const MOCK_ASSESSMENTS: Assessment[] = [];
-export const MOCK_SESSIONS: StudentSession[] = [];
