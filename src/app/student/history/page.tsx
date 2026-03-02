@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -8,13 +9,11 @@ import {
   ShieldAlert, 
   Clock, 
   Search, 
-  ExternalLink,
   ChevronRight,
   FileText,
-  Activity,
   Trophy
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,14 +34,11 @@ export default function StudentHistory() {
   const [sessions, setSessions] = useState<StudentSession[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isMounted, setIsMounted] = useState(false)
-  const [studentId, setStudentId] = useState<string | null>(null)
 
   useEffect(() => {
     const userStr = localStorage.getItem('ag_current_user')
     if (userStr) {
       const user = JSON.parse(userStr)
-      setStudentId(user.id)
-      
       const allSessions = getSessions()
       setSessions(allSessions.filter(s => s.studentId === user.id))
     }
@@ -57,9 +53,11 @@ export default function StudentHistory() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-headline font-bold text-slate-900">Assessment History</h2>
-        <p className="text-muted-foreground">Review your past submissions and integrity performance logs.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-headline font-bold text-slate-900">Assessment History</h2>
+          <p className="text-muted-foreground">Review your past submissions and integrity performance logs.</p>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -103,16 +101,17 @@ export default function StudentHistory() {
               <TableHead className="font-bold text-xs uppercase tracking-wider">Score</TableHead>
               <TableHead className="font-bold text-xs uppercase tracking-wider">Integrity Risk</TableHead>
               <TableHead className="font-bold text-xs uppercase tracking-wider">Warnings</TableHead>
-              <TableHead className="font-bold text-xs uppercase tracking-wider">Last Active</TableHead>
-              <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Details</TableHead>
+              <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredSessions.length > 0 ? (
               filteredSessions.map((session, i) => (
                 <TableRow key={i} className="hover:bg-slate-50/50 transition-colors">
-                  <TableCell className="py-5 font-bold text-slate-800">
-                    {session.assessmentTitle}
+                  <TableCell className="py-5">
+                    <Link href={`/student/history/${session.assessmentId}`} className="font-bold text-slate-800 hover:text-primary transition-colors">
+                      {session.assessmentTitle}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn(
@@ -152,13 +151,11 @@ export default function StudentHistory() {
                       {session.warningCount} / 3
                     </span>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground font-medium">
-                    {session.lastActive}
-                  </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
-                      <Link href={`/student/assessments/${session.assessmentId}`}>
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <Button variant="ghost" size="sm" className="gap-2 font-bold text-primary" asChild>
+                      <Link href={`/student/history/${session.assessmentId}`}>
+                        View Details
+                        <ChevronRight className="w-4 h-4" />
                       </Link>
                     </Button>
                   </TableCell>
@@ -166,7 +163,7 @@ export default function StudentHistory() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-64 text-center">
+                <TableCell colSpan={6} className="h-64 text-center">
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <div className="p-4 bg-slate-50 rounded-full">
                       <History className="w-8 h-8 text-slate-200" />
