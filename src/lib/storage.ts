@@ -4,11 +4,27 @@ const STORAGE_KEYS = {
   ASSESSMENTS: 'ag_assessments',
   SESSIONS: 'ag_sessions',
   STUDENTS: 'ag_students',
+  SETTINGS: 'ag_settings',
 };
+
+export interface GlobalSettings {
+  sensitivity: number;
+  autoLockThreshold: number;
+  notifyOnFlag: boolean;
+  notifyOnLock: boolean;
+  institutionName: string;
+}
 
 const INITIAL_ASSESSMENTS: Assessment[] = [];
 const INITIAL_SESSIONS: StudentSession[] = [];
 const INITIAL_STUDENTS: Student[] = [];
+const DEFAULT_SETTINGS: GlobalSettings = {
+  sensitivity: 70,
+  autoLockThreshold: 3,
+  notifyOnFlag: true,
+  notifyOnLock: true,
+  institutionName: "AcademiaGuard University",
+};
 
 export const getAssessments = (): Assessment[] => {
   if (typeof window === 'undefined') return [];
@@ -93,4 +109,23 @@ export const deleteStudent = (id: string) => {
   const current = getStudents();
   const updated = current.filter(s => s.id !== id);
   localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(updated));
+};
+
+// Global Settings Storage
+export const getGlobalSettings = (): GlobalSettings => {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+  const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+    return DEFAULT_SETTINGS;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return DEFAULT_SETTINGS;
+  }
+};
+
+export const saveGlobalSettings = (settings: GlobalSettings) => {
+  localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 };
