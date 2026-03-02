@@ -12,7 +12,8 @@ import {
   HelpCircle,
   Copy,
   Type,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -149,14 +150,24 @@ export default function AssessmentDetails() {
               <Card key={q.id} className="hover:ring-2 hover:ring-primary/20 transition-all border-none ring-1 ring-slate-200 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start gap-6">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-black text-primary/40 uppercase tracking-widest">Q{index + 1}</span>
-                        <Badge variant="outline" className="bg-slate-50 text-[10px] font-bold">
-                          {q.points} Points
-                        </Badge>
+                    <div className="space-y-4 flex-1">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black text-primary/40 uppercase tracking-widest">Q{index + 1}</span>
+                          <Badge variant="outline" className="bg-slate-50 text-[10px] font-bold">
+                            {q.points} Points
+                          </Badge>
+                        </div>
+                        <p className="text-slate-800 font-medium text-lg leading-snug">{q.text}</p>
                       </div>
-                      <p className="text-slate-800 font-medium text-lg leading-snug">{q.text}</p>
+
+                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-[10px] font-black uppercase text-primary tracking-widest">Reference Answer</span>
+                        </div>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{q.correctAnswer}</p>
+                      </div>
                     </div>
                     
                     <div className="flex flex-col items-end gap-3 shrink-0">

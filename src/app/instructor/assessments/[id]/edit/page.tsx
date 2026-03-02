@@ -15,7 +15,8 @@ import {
   Upload, 
   Loader2,
   FileText,
-  Copy
+  Copy,
+  CheckCircle2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -77,7 +78,8 @@ function EditAssessmentForm() {
       text: "",
       points: 10,
       type: 'Questionnaire',
-      allowCopyPaste: false
+      allowCopyPaste: false,
+      correctAnswer: ""
     }
     setQuestions([...questions, newQuestion])
   }
@@ -105,7 +107,8 @@ function EditAssessmentForm() {
           text: q.text,
           points: q.points,
           type: 'Questionnaire' as const,
-          allowCopyPaste: false
+          allowCopyPaste: false,
+          correctAnswer: ""
         }))
         setQuestions([...questions, ...ocrQuestions])
         toast({
@@ -130,6 +133,17 @@ function EditAssessmentForm() {
       toast({
         title: "Missing Information",
         description: "Please enter an assessment title.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Check if all questions have answers
+    const incompleteQuestion = questions.find(q => !q.text || !q.correctAnswer)
+    if (incompleteQuestion) {
+      toast({
+        title: "Incomplete Questions",
+        description: "Every question must have a question text and a final correct answer.",
         variant: "destructive"
       })
       return
@@ -375,6 +389,18 @@ function EditAssessmentForm() {
                           <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)} className="text-destructive hover:bg-destructive/10">
                             <Trash2 className="w-4 h-4" />
                           </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs uppercase font-bold text-primary flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3 h-3" /> Final Correct Answer
+                          </Label>
+                          <Textarea 
+                            placeholder="Enter the correct reference answer for this question..." 
+                            value={q.correctAnswer}
+                            onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
+                            className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
+                          />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-6 pt-4 border-t">

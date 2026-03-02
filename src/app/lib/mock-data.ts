@@ -4,6 +4,7 @@ export interface Question {
   points: number;
   type: 'Questionnaire' | 'Text Area';
   allowCopyPaste: boolean;
+  correctAnswer: string;
 }
 
 export interface Assessment {
