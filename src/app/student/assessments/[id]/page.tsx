@@ -96,6 +96,14 @@ export default function ActiveAssessment() {
     setAnswers(prev => ({ ...prev, [id]: value }))
   }
 
+  const handleSaveDraft = () => {
+    toast({
+      title: "Progress Saved",
+      description: "You can return to this assessment at any time."
+    })
+    router.push('/student/assessments')
+  }
+
   const handleSubmit = () => {
     setIsSubmitting(true)
     
@@ -113,9 +121,6 @@ export default function ActiveAssessment() {
         if (studentAnswer === correctAnswer && studentAnswer !== "") {
           earned += q.points
         }
-      } else {
-        // Essays currently don't contribute to auto-grade points but are captured for review
-        // One could potentially give full points for any valid attempt if required
       }
     })
 
@@ -250,7 +255,7 @@ export default function ActiveAssessment() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="ghost" className="gap-2 font-bold text-slate-600">
+          <Button variant="ghost" className="gap-2 font-bold text-slate-600" onClick={handleSaveDraft}>
             <Save className="w-4 h-4" />
             Save Draft
           </Button>

@@ -44,6 +44,10 @@ export function SidebarNav({ role }: SidebarNavProps) {
     }
   }, [pathname])
 
+  // Focus Mode: Hide sidebar on active student assessment pages
+  const isTakingAssessment = role === 'student' && pathname?.match(/^\/student\/assessments\/[^\/]+$/);
+  if (isTakingAssessment) return null;
+
   const isExpanded = !isCollapsed || isHovered
 
   const showWritingBaseline = role === 'student' && !requireBaseline && !hasBaseline
