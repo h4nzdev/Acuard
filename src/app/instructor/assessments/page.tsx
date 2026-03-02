@@ -11,7 +11,8 @@ import {
   Shield, 
   ExternalLink,
   Search,
-  BookOpen
+  BookOpen,
+  Edit
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -82,42 +83,50 @@ export default function InstructorAssessments() {
       <div className="grid gap-6">
         {filteredAssessments.length > 0 ? (
           filteredAssessments.map((assessment) => (
-            <Card key={assessment.id} className="hover:shadow-md transition-shadow duration-300">
+            <Card key={assessment.id} className="hover:shadow-md transition-shadow duration-300 overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex items-center p-6 gap-6">
-                  <div className="p-4 bg-primary/10 rounded-xl">
-                    <FileText className="w-8 h-8 text-primary" />
-                  </div>
-                  
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-headline font-bold text-slate-900">{assessment.title}</h3>
-                      <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] ${
-                        assessment.policy === 'Not Allowed' ? 'border-destructive text-destructive' :
-                        assessment.policy === 'Allowed but Monitored' ? 'border-primary text-primary' :
-                        'border-green-600 text-green-600'
-                      }`}>
-                        {assessment.policy}
-                      </Badge>
+                  <Link 
+                    href={`/instructor/assessments/${assessment.id}`}
+                    className="flex items-center gap-6 flex-1 group"
+                  >
+                    <div className="p-4 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                      <FileText className="w-8 h-8 text-primary" />
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-1 max-w-2xl">
-                      {assessment.description || "No description provided."}
-                    </p>
-                    <div className="flex items-center gap-4 pt-2">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        {assessment.durationMinutes} Minutes
+                    
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl font-headline font-bold text-slate-900 group-hover:text-primary transition-colors">
+                          {assessment.title}
+                        </h3>
+                        <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] ${
+                          assessment.policy === 'Not Allowed' ? 'border-destructive text-destructive' :
+                          assessment.policy === 'Allowed but Monitored' ? 'border-primary text-primary' :
+                          'border-green-600 text-green-600'
+                        }`}>
+                          {assessment.policy}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Shield className="w-3 h-3" />
-                        Active Monitoring
+                      <p className="text-sm text-muted-foreground line-clamp-1 max-w-2xl">
+                        {assessment.description || "No description provided."}
+                      </p>
+                      <div className="flex items-center gap-4 pt-2">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          {assessment.durationMinutes} Minutes
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Shield className="w-3 h-3" />
+                          {assessment.questions?.length || 0} Questions
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/instructor/assessments/${assessment.id}/edit`}>
+                      <Link href={`/instructor/assessments/${assessment.id}/edit`} className="gap-2">
+                        <Edit className="w-4 h-4" />
                         Edit
                       </Link>
                     </Button>
@@ -128,8 +137,10 @@ export default function InstructorAssessments() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
-                          <ExternalLink className="w-4 h-4" /> View Preview
+                        <DropdownMenuItem asChild>
+                          <Link href={`/instructor/assessments/${assessment.id}`} className="gap-2">
+                            <ExternalLink className="w-4 h-4" /> View Details
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="gap-2 text-destructive"
