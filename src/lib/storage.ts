@@ -5,52 +5,9 @@ const STORAGE_KEYS = {
   SESSIONS: 'ag_sessions',
 };
 
-const INITIAL_ASSESSMENTS: Assessment[] = [
-  {
-    id: '1',
-    title: 'Modern European History Final',
-    description: 'Final essay-based assessment on 20th century Europe.',
-    policy: 'Not Allowed',
-    durationMinutes: 60,
-  },
-  {
-    id: '2',
-    title: 'Intro to Algorithms - Midterm',
-    description: 'Implementation and analysis of sorting algorithms.',
-    policy: 'Allowed but Monitored',
-    durationMinutes: 90,
-  },
-];
-
-const INITIAL_SESSIONS: StudentSession[] = [
-  {
-    studentId: 's1',
-    studentName: 'Alex Rivera',
-    assessmentId: '1',
-    status: 'In Progress',
-    riskScore: 'Normal',
-    warningCount: 0,
-    lastActive: new Date(),
-  },
-  {
-    studentId: 's2',
-    studentName: 'Jordan Smith',
-    assessmentId: '1',
-    status: 'Flagged',
-    riskScore: 'Suspicious',
-    warningCount: 2,
-    lastActive: new Date(),
-  },
-  {
-    studentId: 's3',
-    studentName: 'Sam Taylor',
-    assessmentId: '1',
-    status: 'Locked',
-    riskScore: 'Highly Suspicious',
-    warningCount: 3,
-    lastActive: new Date(),
-  },
-];
+// Start at 0: No initial mock data
+const INITIAL_ASSESSMENTS: Assessment[] = [];
+const INITIAL_SESSIONS: StudentSession[] = [];
 
 export const getAssessments = (): Assessment[] => {
   if (typeof window === 'undefined') return [];

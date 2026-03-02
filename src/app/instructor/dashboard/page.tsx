@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Users, AlertTriangle, FileCheck, ShieldX, Activity, ArrowUpRight } from "lucide-react"
+import { Users, AlertTriangle, FileCheck, ShieldX, Activity, ArrowUpRight, PlusCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getSessions, getAssessments } from "@/lib/storage"
@@ -43,7 +43,7 @@ export default function InstructorDashboard() {
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
-        <StatCard title="Total Students" value="124" icon={Users} trend="+4% this week" />
+        <StatCard title="Total Students" value="0" icon={Users} trend="No data" />
         <StatCard title="Active Exams" value={activeExamsCount.toString()} icon={Activity} color="text-primary" />
         <StatCard title="Flagged Sessions" value={flaggedCount.toString()} icon={AlertTriangle} color="text-yellow-600" />
         <StatCard title="Locked Sessions" value={lockedCount.toString()} icon={ShieldX} color="text-destructive" />
@@ -69,7 +69,7 @@ export default function InstructorDashboard() {
                       <div className={`w-2 h-12 rounded-full ${session.status === 'Locked' ? 'bg-destructive' : 'bg-yellow-500'}`} />
                       <div>
                         <p className="font-bold text-slate-800">{session.studentName}</p>
-                        <p className="text-xs text-muted-foreground">Modern European History Final</p>
+                        <p className="text-xs text-muted-foreground">Activity ID: {session.assessmentId}</p>
                       </div>
                     </div>
                     <div className="text-right space-y-1">
@@ -85,8 +85,12 @@ export default function InstructorDashboard() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No flagged sessions at this time.
+                <div className="text-center py-12 flex flex-col items-center gap-4 border-2 border-dashed rounded-xl bg-slate-50/50">
+                  <Activity className="w-12 h-12 text-slate-300" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-slate-600">No activity detected yet</p>
+                    <p className="text-xs text-muted-foreground">Flagged sessions will appear here once students begin assessments.</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -98,41 +102,55 @@ export default function InstructorDashboard() {
             <CardTitle className="font-headline text-xl">Integrity Trends</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium">
-                <span>Normal Activity</span>
-                <span>92%</span>
+            {activeExamsCount > 0 ? (
+              <>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>Normal Activity</span>
+                    <span>100%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500" style={{ width: '100%' }} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>AI Likelihood Detected</span>
+                    <span>0%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-yellow-500" style={{ width: '0%' }} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>Copy-Paste Violations</span>
+                    <span>0%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-destructive" style={{ width: '0%' }} />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 space-y-4">
+                <p className="text-sm text-muted-foreground">Create an assessment to start tracking integrity trends.</p>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/instructor/assessments/new">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Create First Assessment
+                  </Link>
+                </Button>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-green-500" style={{ width: '92%' }} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium">
-                <span>AI Likelihood Detected</span>
-                <span>5.2%</span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-yellow-500" style={{ width: '5%' }} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-medium">
-                <span>Copy-Paste Violations</span>
-                <span>2.8%</span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-destructive" style={{ width: '3%' }} />
-              </div>
-            </div>
+            )}
 
             <div className="p-4 bg-accent/5 rounded-xl border border-accent/10 mt-6">
               <div className="flex items-center gap-3 mb-2">
                 <FileCheck className="w-5 h-5 text-accent" />
-                <h4 className="font-bold text-accent text-sm">Policy Effectiveness</h4>
+                <h4 className="font-bold text-accent text-sm">Policy effectiveness</h4>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Assessments with "Not Allowed" paste policy show 40% fewer flags than monitored sessions.
+                Define strict "Not Allowed" paste policies to significantly reduce potential integrity risks.
               </p>
             </div>
           </CardContent>
@@ -150,7 +168,7 @@ function StatCard({ title, value, icon: Icon, trend, color = "text-slate-800" }:
           <div className="p-2 bg-slate-50 rounded-lg">
             <Icon className={`w-5 h-5 ${color}`} />
           </div>
-          {trend && <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{trend}</span>}
+          {trend && <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{trend}</span>}
         </div>
         <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
         <p className={`text-3xl font-headline font-bold mt-1 ${color}`}>{value}</p>
