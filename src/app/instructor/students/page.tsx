@@ -13,7 +13,8 @@ import {
   Trash2,
   Mail,
   Calendar,
-  Eye
+  Eye,
+  Lock
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,7 @@ import { Label } from "@/components/ui/label"
 import { getStudents, saveStudent, deleteStudent } from "@/lib/storage"
 import { Student } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 export default function StudentManagement() {
   const [students, setStudents] = useState<Student[]>([])
@@ -47,6 +49,7 @@ export default function StudentManagement() {
   // New student form state
   const [newName, setNewName] = useState("")
   const [newEmail, setNewEmail] = useState("")
+  const [newPassword, setNewPassword] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
@@ -55,10 +58,10 @@ export default function StudentManagement() {
   }, [])
 
   const handleAddStudent = () => {
-    if (!newName || !newEmail) {
+    if (!newName || !newEmail || !newPassword) {
       toast({
         title: "Error",
-        description: "Please fill in all fields.",
+        description: "Please fill in all fields including the password.",
         variant: "destructive"
       })
       return
@@ -68,6 +71,7 @@ export default function StudentManagement() {
       id: Math.random().toString(36).substr(2, 9).toUpperCase(),
       name: newName,
       email: newEmail,
+      password: newPassword,
       enrolledDate: new Date().toLocaleDateString(),
       honestyScore: 100, // Initial score
       totalAssessments: 0,
@@ -79,6 +83,7 @@ export default function StudentManagement() {
     setIsDialogOpen(false)
     setNewName("")
     setNewEmail("")
+    setNewPassword("")
     toast({
       title: "Student Added",
       description: `${newName} has been enrolled successfully.`
@@ -128,6 +133,20 @@ export default function StudentManagement() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input id="email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="e.g. john@university.edu" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Login Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    className="pl-10"
+                    value={newPassword} 
+                    onChange={(e) => setNewPassword(e.target.value)} 
+                    placeholder="Create a secure password" 
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
