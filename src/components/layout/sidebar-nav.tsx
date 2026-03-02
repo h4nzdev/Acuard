@@ -60,33 +60,52 @@ export function SidebarNav({ role }: SidebarNavProps) {
         )}
       >
         <div className="p-4 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-8 min-h-[40px]">
-            {isExpanded ? (
-              <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
-                <ShieldAlert className="w-8 h-8 text-accent shrink-0" />
-                <h1 className="text-xl font-headline font-bold tracking-tight">AcademiaGuard</h1>
-              </div>
-            ) : (
-              <div className="mx-auto">
+          <div className={cn(
+            "flex flex-col gap-4 mb-8",
+            isExpanded ? "items-stretch" : "items-center"
+          )}>
+            <div className={cn(
+              "flex items-center min-h-[40px]",
+              isExpanded ? "justify-between" : "justify-center"
+            )}>
+              {isExpanded ? (
+                <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
+                  <ShieldAlert className="w-8 h-8 text-accent shrink-0" />
+                  <h1 className="text-xl font-headline font-bold tracking-tight">AcademiaGuard</h1>
+                </div>
+              ) : (
                 <ShieldAlert className="w-8 h-8 text-accent" />
-              </div>
-            )}
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsCollapsed(!isCollapsed);
-                if (!isCollapsed) setIsHovered(false); // Reset hover if we manually expand
-              }}
-              className={cn(
-                "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all",
-                !isExpanded && "absolute -right-3 top-20 bg-sidebar border border-sidebar-border rounded-full shadow-md z-10 w-6 h-6"
               )}
-            >
-              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </Button>
+              
+              {isExpanded && !isHovered && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCollapsed(true);
+                  }}
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all shrink-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            {!isExpanded && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCollapsed(false);
+                  setIsHovered(false);
+                }}
+                className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            )}
           </div>
           
           <nav className="space-y-2 flex-1">
