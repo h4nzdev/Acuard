@@ -41,14 +41,10 @@ export function SidebarNav({ role }: SidebarNavProps) {
       const user = JSON.parse(userStr)
       setHasBaseline(!!getStudentBaseline(user.id))
     }
-  }, [pathname]) // Refresh on navigation
+  }, [pathname])
 
   const isExpanded = !isCollapsed || isHovered
 
-  // Writing Baseline sidebar logic:
-  // - Show only for students.
-  // - Show only if requireBaseline is FALSE (instructor toggled it OFF in settings).
-  // - Hide if the student has already completed their baseline (hasBaseline is TRUE).
   const showWritingBaseline = role === 'student' && !requireBaseline && !hasBaseline
 
   const links = role === 'instructor' ? [
@@ -63,6 +59,8 @@ export function SidebarNav({ role }: SidebarNavProps) {
     { href: "/student/assessments", label: "My Assessments", icon: FileText },
     { href: "/student/history", label: "History", icon: History },
   ]
+
+  const profileHref = role === 'instructor' ? "/instructor/profile" : "/student/profile"
 
   return (
     <div 
@@ -140,13 +138,17 @@ export function SidebarNav({ role }: SidebarNavProps) {
           </nav>
 
           <div className="mt-auto pt-6 border-t border-sidebar-border">
-            <div className={cn(
-              "flex items-center gap-3 px-4 py-3 opacity-80 hover:opacity-100 cursor-pointer mb-2 rounded-md hover:bg-sidebar-accent",
-              !isExpanded && "justify-center px-0"
-            )}>
+            <Link
+              href={profileHref}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 opacity-80 hover:opacity-100 cursor-pointer mb-2 rounded-md hover:bg-sidebar-accent",
+                pathname === profileHref ? "bg-sidebar-accent text-sidebar-accent-foreground" : "",
+                !isExpanded && "justify-center px-0"
+              )}
+            >
               <User className="w-5 h-5 shrink-0" />
               {isExpanded && <span className="text-sm font-medium animate-in fade-in duration-200">Profile</span>}
-            </div>
+            </Link>
             <Link 
               href="/" 
               className={cn(
