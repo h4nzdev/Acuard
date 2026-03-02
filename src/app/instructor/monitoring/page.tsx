@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -134,10 +135,12 @@ export default function LiveMonitoring() {
               {filteredSessions.map((session) => (
                 <TableRow key={`${session.studentId}-${session.assessmentId}`} className="hover:bg-slate-50 transition-colors">
                   <TableCell className="py-5">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-800">{session.studentName}</span>
-                      <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">ID: {session.studentId}</span>
-                    </div>
+                    <Link href={`/instructor/monitoring/${session.studentId}`} className="group">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 group-hover:text-primary transition-colors">{session.studentName}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">ID: {session.studentId}</span>
+                      </div>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm font-medium text-slate-600">{session.assessmentTitle}</span>
@@ -162,7 +165,20 @@ export default function LiveMonitoring() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" title="View details" asChild>
+                      {session.status === 'Locked' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleUnlock(session)}
+                          className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 font-bold gap-1.5"
+                          title="Unlock Session"
+                        >
+                          <Unlock className="w-3.5 h-3.5" />
+                          Unlock
+                        </Button>
+                      )}
+                      
+                      <Button variant="ghost" size="icon" title="View Analytics" asChild>
                         <Link href={`/instructor/monitoring/${session.studentId}`}>
                           <Eye className="w-4 h-4 text-primary" />
                         </Link>
