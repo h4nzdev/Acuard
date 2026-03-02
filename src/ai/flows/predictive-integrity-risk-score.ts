@@ -65,6 +65,14 @@ const predictiveIntegrityRiskScorePrompt = ai.definePrompt({
   name: 'predictiveIntegrityRiskScorePrompt',
   input: { schema: PredictiveIntegrityRiskScoreInputSchema },
   output: { schema: PredictiveIntegrityRiskScoreOutputSchema },
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+    ],
+  },
   prompt: `You are an academic integrity analysis system. Your task is to evaluate a student's current assessment behavior and writing style against their established baseline to determine a risk score for potential academic misconduct.
 
 Analyze the following data carefully:

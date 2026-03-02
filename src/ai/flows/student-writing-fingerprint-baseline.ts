@@ -67,6 +67,14 @@ const fingerprintPrompt = ai.definePrompt({
   name: 'studentWritingFingerprintBaselinePrompt',
   input: {schema: StudentWritingFingerprintBaselineInputSchema},
   output: {schema: StudentWritingFingerprintBaselineOutputSchema},
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+    ],
+  },
   prompt: `You are an expert academic writing analyst. Your task is to analyze a student's baseline writing assessment to create a unique 'writing fingerprint'.
 This fingerprint will be used to compare against future academic work to detect potential academic integrity issues.
 
