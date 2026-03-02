@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Eye, ShieldAlert, MoreVertical, RefreshCw, Filter, Search, Inbox } from "lucide-react"
+import { 
+  Eye, 
+  ShieldAlert, 
+  MoreVertical, 
+  RefreshCw, 
+  Filter, 
+  Search, 
+  Inbox,
+  Trash2,
+  ExternalLink
+} from "lucide-react"
 import { 
   Table, 
   TableBody, 
@@ -14,12 +24,20 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { getSessions } from "@/lib/storage"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { getSessions, deleteSession } from "@/lib/storage"
 import { StudentSession } from "@/app/lib/mock-data"
+import { toast } from "@/hooks/use-toast"
 
 export default function LiveMonitoring() {
   const [sessions, setSessions] = useState<StudentSession[]>([])
   const [isMounted, setIsMounted] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     setSessions(getSessions())
@@ -30,10 +48,24 @@ export default function LiveMonitoring() {
     setSessions(getSessions())
   }
 
+  const handleDelete = (studentId: string) => {
+    deleteSession(studentId)
+    setSessions(getSessions())
+    toast({
+      title: "Session Removed",
+      description: "The student session has been cleared from the live feed.",
+    })
+  }
+
+  const filteredSessions = sessions.filter(s => 
+    s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.assessmentTitle.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   if (!isMounted) return null
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-headline font-bold text-slate-900">Live Monitoring Feed</h2>
@@ -54,7 +86,12 @@ export default function LiveMonitoring() {
       <div className="flex gap-4 bg-white p-4 rounded-2xl shadow-sm border mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search students or assessments..." className="pl-10 h-11" />
+          <Input 
+            placeholder="Search students or assessments..." 
+            className="pl-10 h-11" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
         <Button variant="ghost" className="gap-2 h-11 border">
           <Filter className="w-4 h-4" />
@@ -63,29 +100,29 @@ export default function LiveMonitoring() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl border overflow-hidden">
-        {sessions.length > 0 ? (
+        {filteredSessions.length > 0 ? (
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow>
-                <TableHead className="font-bold py-5">Student</TableHead>
-                <TableHead className="font-bold">Assessment</TableHead>
-                <TableHead className="font-bold">Status</TableHead>
-                <TableHead className="font-bold">Risk Score</TableHead>
-                <TableHead className="font-bold">Warnings</TableHead>
-                <TableHead className="text-right font-bold">Actions</TableHead>
+                <TableHead className="font-bold py-5 text-xs uppercase tracking-wider">Student</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider">Assessment</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider">Risk Score</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider">Warnings</TableHead>
+                <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sessions.map((session) => (
+              {filteredSessions.map((session) => (
                 <TableRow key={session.studentId} className="hover:bg-slate-50 transition-colors">
                   <TableCell className="py-5">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-800">{session.studentName}</span>
-                      <span className="text-xs text-muted-foreground uppercase tracking-tight">ID: {session.studentId}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">ID: {session.studentId}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm font-medium">{session.assessmentTitle}</span>
+                    <span className="text-sm font-medium text-slate-600">{session.assessmentTitle}</span>
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={session.status} />
@@ -112,9 +149,27 @@ export default function LiveMonitoring() {
                           <Eye className="w-4 h-4 text-primary" />
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/instructor/monitoring/${session.studentId}`} className="gap-2 cursor-pointer">
+                              <ExternalLink className="w-4 h-4" /> View Analytics
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                            onClick={() => handleDelete(session.studentId)}
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete Session
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -148,7 +203,7 @@ function StatusBadge({ status }: { status: string }) {
     'Locked': 'bg-destructive/10 text-destructive border-destructive/20'
   }
   return (
-    <Badge variant="outline" className={`${styles[status]} font-bold`}>
+    <Badge variant="outline" className={`${styles[status]} font-bold text-[10px] uppercase tracking-wider`}>
       {status}
     </Badge>
   )
@@ -162,8 +217,8 @@ function RiskBadge({ score }: { score: string }) {
   }
   return (
     <div className="flex items-center gap-2">
-      <div className={`w-2.5 h-2.5 rounded-full ${styles[score]}`} />
-      <span className="text-sm font-medium">{score}</span>
+      <div className={`w-2 h-2 rounded-full ${styles[score]}`} />
+      <span className="text-xs font-bold text-slate-600">{score}</span>
     </div>
   )
 }

@@ -62,3 +62,9 @@ export const updateSession = (updatedSession: StudentSession) => {
   const updated = current.map(s => s.studentId === updatedSession.studentId ? updatedSession : s);
   localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
 };
+
+export const deleteSession = (studentId: string) => {
+  const current = getSessions();
+  const updated = current.filter(s => s.studentId !== studentId);
+  localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updated));
+};
