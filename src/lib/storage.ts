@@ -15,6 +15,7 @@ export interface GlobalSettings {
   notifyOnFlag: boolean;
   notifyOnLock: boolean;
   institutionName: string;
+  requireBaseline: boolean;
 }
 
 const INITIAL_ASSESSMENTS: Assessment[] = [];
@@ -26,6 +27,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   notifyOnFlag: true,
   notifyOnLock: true,
   institutionName: "AcademiaGuard University",
+  requireBaseline: true,
 };
 
 export const getAssessments = (): Assessment[] => {

@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -19,6 +20,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getGlobalSettings, GlobalSettings } from "@/lib/storage"
 
 interface SidebarNavProps {
   role: 'student' | 'instructor'
@@ -28,6 +30,11 @@ export function SidebarNav({ role }: SidebarNavProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [settings, setSettings] = useState<GlobalSettings | null>(null)
+
+  useEffect(() => {
+    setSettings(getGlobalSettings())
+  }, [])
 
   const isExpanded = !isCollapsed || isHovered
 
@@ -39,7 +46,7 @@ export function SidebarNav({ role }: SidebarNavProps) {
     { href: "/instructor/settings", label: "Policies", icon: Settings },
   ] : [
     { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/student/baseline", label: "Writing Baseline", icon: PenTool },
+    ...(settings?.requireBaseline ? [{ href: "/student/baseline", label: "Writing Baseline", icon: PenTool }] : []),
     { href: "/student/assessments", label: "My Assessments", icon: FileText },
     { href: "/student/history", label: "History", icon: History },
   ]

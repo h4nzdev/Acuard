@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -10,7 +11,8 @@ import {
   Save, 
   Building,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Fingerprint
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -78,6 +80,28 @@ export default function PoliciesSettings() {
                 id="inst-name" 
                 value={settings.institutionName} 
                 onChange={(e) => setSettings({...settings, institutionName: e.target.value})}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-none ring-1 ring-slate-200">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Fingerprint className="w-5 h-5 text-primary" />
+              <CardTitle className="text-xl font-headline">Identity Verification</CardTitle>
+            </div>
+            <CardDescription>Control baseline requirements for students.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-bold">Require Writing Baseline</Label>
+                <p className="text-xs text-muted-foreground">Students must establish a writing fingerprint before starting any assessments.</p>
+              </div>
+              <Switch 
+                checked={settings.requireBaseline} 
+                onCheckedChange={(checked) => setSettings({...settings, requireBaseline: checked})}
               />
             </div>
           </CardContent>

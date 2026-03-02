@@ -7,7 +7,7 @@ import { FileText, Clock, ChevronRight, AlertCircle, ShieldCheck, PenTool, Brain
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { getAssessments, getSessions, getStudentBaseline } from "@/lib/storage"
+import { getAssessments, getSessions, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { useRouter } from "next/navigation"
 
@@ -18,6 +18,7 @@ export default function StudentAssessments() {
   const [isMounted, setIsMounted] = useState(false)
   const [studentId, setStudentId] = useState<string | null>(null)
   const [hasBaseline, setHasBaseline] = useState<boolean>(true)
+  const [requireBaseline, setRequireBaseline] = useState<boolean>(true)
 
   useEffect(() => {
     const userStr = localStorage.getItem('ag_current_user')
@@ -28,6 +29,10 @@ export default function StudentAssessments() {
       // Check baseline
       const baseline = getStudentBaseline(user.id)
       setHasBaseline(!!baseline)
+
+      // Check settings
+      const settings = getGlobalSettings()
+      setRequireBaseline(settings.requireBaseline)
     } else {
       router.push('/login')
     }
@@ -39,8 +44,8 @@ export default function StudentAssessments() {
 
   if (!isMounted) return null
 
-  // If no baseline, show the baseline requirement gateway
-  if (!hasBaseline) {
+  // If no baseline and it is required, show the baseline requirement gateway
+  if (requireBaseline && !hasBaseline) {
     return (
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500 py-12">
         <Card className="border-none shadow-2xl ring-1 ring-slate-200 overflow-hidden">
