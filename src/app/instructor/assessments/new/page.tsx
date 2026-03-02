@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef } from "react"
@@ -31,6 +30,7 @@ import { toast } from "@/hooks/use-toast"
 import { saveAssessment } from "@/lib/storage"
 import { Assessment, Question } from "@/app/lib/mock-data"
 import { extractQuestionsFromImage } from "@/ai/flows/ocr-questions-flow"
+import { cn } from "@/lib/utils"
 
 export default function NewAssessment() {
   const router = useRouter()
@@ -139,7 +139,7 @@ export default function NewAssessment() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12">
-      <div className="flex justify-between items-center border-b pb-6 bg-background/50 backdrop-blur-sm sticky top-0 z-10 pt-2">
+      <div className="flex justify-between items-center border-b pb-6 pt-2">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-xl">
             <FilePlus className="w-8 h-8 text-primary" />
@@ -220,31 +220,52 @@ export default function NewAssessment() {
                 <CardContent className="space-y-8">
                   <div className="space-y-4">
                     <Label className="text-base font-bold">Copy-Paste Policy</Label>
-                    <RadioGroup value={policy} onValueChange={(val) => setPolicy(val as any)} className="grid grid-cols-3 gap-4">
-                      <Label
-                        htmlFor="not-allowed"
-                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer transition-colors ${policy === 'Not Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
-                      >
+                    <RadioGroup 
+                      value={policy} 
+                      onValueChange={(val) => setPolicy(val as any)} 
+                      className="grid grid-cols-3 gap-4"
+                    >
+                      <div className="flex flex-col items-center">
                         <RadioGroupItem value="Not Allowed" id="not-allowed" className="sr-only" />
-                        <X className="mb-3 h-6 w-6 text-destructive" />
-                        <span className="text-xs font-bold uppercase">Disallowed</span>
-                      </Label>
-                      <Label
-                        htmlFor="monitored"
-                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer transition-colors ${policy === 'Allowed but Monitored' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
-                      >
+                        <Label
+                          htmlFor="not-allowed"
+                          className={cn(
+                            "flex flex-col items-center justify-center w-full rounded-xl border-2 p-4 cursor-pointer transition-all hover:bg-slate-50",
+                            policy === 'Not Allowed' ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-muted"
+                          )}
+                        >
+                          <X className="mb-3 h-6 w-6 text-destructive" />
+                          <span className="text-xs font-bold uppercase">Disallowed</span>
+                        </Label>
+                      </div>
+
+                      <div className="flex flex-col items-center">
                         <RadioGroupItem value="Allowed but Monitored" id="monitored" className="sr-only" />
-                        <Shield className="mb-3 h-6 w-6 text-primary" />
-                        <span className="text-xs font-bold uppercase">Monitored</span>
-                      </Label>
-                      <Label
-                        htmlFor="allowed"
-                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer transition-colors ${policy === 'Fully Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
-                      >
+                        <Label
+                          htmlFor="monitored"
+                          className={cn(
+                            "flex flex-col items-center justify-center w-full rounded-xl border-2 p-4 cursor-pointer transition-all hover:bg-slate-50",
+                            policy === 'Allowed but Monitored' ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-muted"
+                          )}
+                        >
+                          <Shield className="mb-3 h-6 w-6 text-primary" />
+                          <span className="text-xs font-bold uppercase">Monitored</span>
+                        </Label>
+                      </div>
+
+                      <div className="flex flex-col items-center">
                         <RadioGroupItem value="Fully Allowed" id="allowed" className="sr-only" />
-                        <MousePointer2 className="mb-3 h-6 w-6 text-green-600" />
-                        <span className="text-xs font-bold uppercase">Fully Allowed</span>
-                      </Label>
+                        <Label
+                          htmlFor="allowed"
+                          className={cn(
+                            "flex flex-col items-center justify-center w-full rounded-xl border-2 p-4 cursor-pointer transition-all hover:bg-slate-50",
+                            policy === 'Fully Allowed' ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-muted"
+                          )}
+                        >
+                          <MousePointer2 className="mb-3 h-6 w-6 text-green-600" />
+                          <span className="text-xs font-bold uppercase">Fully Allowed</span>
+                        </Label>
+                      </div>
                     </RadioGroup>
                   </div>
 
@@ -395,7 +416,10 @@ export default function NewAssessment() {
                 <CardContent className="space-y-4">
                   <div 
                     onClick={() => !isOcrLoading && fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${isOcrLoading ? 'bg-slate-100 opacity-50' : 'hover:bg-accent/[0.05] hover:border-accent/40 border-muted-foreground/20'}`}
+                    className={cn(
+                      "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
+                      isOcrLoading ? "bg-slate-100 opacity-50" : "hover:bg-accent/[0.05] hover:border-accent/40 border-muted-foreground/20"
+                    )}
                   >
                     {isOcrLoading ? (
                       <div className="space-y-3">
@@ -419,23 +443,6 @@ export default function NewAssessment() {
                       onChange={handleFileUpload}
                       disabled={isOcrLoading}
                     />
-                  </div>
-                  <div className="p-4 bg-white rounded-lg border border-accent/10 shadow-sm">
-                    <h4 className="text-xs font-bold text-accent uppercase mb-2">How it works</h4>
-                    <ul className="space-y-2 text-[11px] text-muted-foreground">
-                      <li className="flex gap-2">
-                        <span className="w-4 h-4 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">1</span>
-                        Take a clear photo of your question paper.
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="w-4 h-4 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">2</span>
-                        Our AI analyzes handwriting and print styles.
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="w-4 h-4 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">3</span>
-                        Questions are added to your list automatically.
-                      </li>
-                    </ul>
                   </div>
                 </CardContent>
               </Card>
