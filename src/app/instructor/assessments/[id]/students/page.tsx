@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { getAssessments, getStudents, getSessions } from "@/lib/storage"
 import { Assessment, Student, StudentSession } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 export default function AssessmentStudentProgress() {
   const params = useParams()
