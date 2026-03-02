@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef } from "react"
@@ -137,8 +138,8 @@ export default function NewAssessment() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex justify-between items-center border-b pb-6">
+    <div className="max-w-5xl mx-auto space-y-8 pb-12">
+      <div className="flex justify-between items-center border-b pb-6 bg-background/50 backdrop-blur-sm sticky top-0 z-10 pt-2">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-xl">
             <FilePlus className="w-8 h-8 text-primary" />
@@ -166,7 +167,7 @@ export default function NewAssessment() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <TabsContent value="details" className="space-y-8">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Card className="shadow-lg">
@@ -222,7 +223,7 @@ export default function NewAssessment() {
                     <RadioGroup value={policy} onValueChange={(val) => setPolicy(val as any)} className="grid grid-cols-3 gap-4">
                       <Label
                         htmlFor="not-allowed"
-                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'Not Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
+                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer transition-colors ${policy === 'Not Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
                       >
                         <RadioGroupItem value="Not Allowed" id="not-allowed" className="sr-only" />
                         <X className="mb-3 h-6 w-6 text-destructive" />
@@ -230,7 +231,7 @@ export default function NewAssessment() {
                       </Label>
                       <Label
                         htmlFor="monitored"
-                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'Allowed but Monitored' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
+                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer transition-colors ${policy === 'Allowed but Monitored' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
                       >
                         <RadioGroupItem value="Allowed but Monitored" id="monitored" className="sr-only" />
                         <Shield className="mb-3 h-6 w-6 text-primary" />
@@ -238,7 +239,7 @@ export default function NewAssessment() {
                       </Label>
                       <Label
                         htmlFor="allowed"
-                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer ${policy === 'Fully Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
+                        className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-slate-50 cursor-pointer transition-colors ${policy === 'Fully Allowed' ? 'border-primary bg-primary/[0.05]' : 'border-muted'}`}
                       >
                         <RadioGroupItem value="Fully Allowed" id="allowed" className="sr-only" />
                         <MousePointer2 className="mb-3 h-6 w-6 text-green-600" />
@@ -291,7 +292,7 @@ export default function NewAssessment() {
           </div>
         </TabsContent>
 
-        <TabsContent value="questions" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <TabsContent value="questions" className="space-y-8">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Card className="shadow-lg">
@@ -338,11 +339,11 @@ export default function NewAssessment() {
                             >
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Questionnaire" id={`q-type-q-${q.id}`} />
-                                <Label htmlFor={`q-type-q-${q.id}`} className="font-medium">Questionnaire</Label>
+                                <Label htmlFor={`q-type-q-${q.id}`} className="font-medium cursor-pointer">Questionnaire</Label>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Text Area" id={`q-type-t-${q.id}`} />
-                                <Label htmlFor={`q-type-t-${q.id}`} className="font-medium">Text Area</Label>
+                                <Label htmlFor={`q-type-t-${q.id}`} className="font-medium cursor-pointer">Text Area</Label>
                               </div>
                             </RadioGroup>
                           </div>
