@@ -71,7 +71,7 @@ export default function AssessmentResultDetails() {
     ? Math.round((session.score / session.totalPossiblePoints) * 100)
     : 0
 
-  // Check if writing style analysis is applicable (contains text-based questions)
+  // Check if writing style analysis is applicable (contains text-based questions including Essays)
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
 
   // Mock match percentage based on risk level
@@ -178,21 +178,25 @@ export default function AssessmentResultDetails() {
                 
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    This activity involved free-text responses. AcademiaGuard compared your current typing dynamics and syntactic phrasing against your established baseline.
+                    This activity included free-text responses (Essays, Text Areas, or Questionnaires). AcademiaGuard compared your typing dynamics and syntactic patterns against your baseline to verify that the work is your own and not AI-generated.
                   </p>
                   
                   <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                      <span>Parameter</span>
-                      <span>Variance</span>
+                      <span>Biometric Parameter</span>
+                      <span>Baseline Variance</span>
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                       <span>Keystroke Rhythm</span>
-                      <span className="text-green-600 font-bold">{session.riskScore === 'Normal' ? '< 4%' : '> 22%'}</span>
+                      <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
+                        {session.riskScore === 'Normal' ? '< 4%' : '> 22%'}
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                       <span>Syntactic Density</span>
-                      <span className="text-green-600 font-bold">{session.riskScore === 'Normal' ? '< 2%' : '> 15%'}</span>
+                      <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
+                        {session.riskScore === 'Normal' ? '< 2%' : '> 15%'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -231,7 +235,7 @@ export default function AssessmentResultDetails() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-bold text-slate-800">Human Pattern Likelihood</p>
+                  <p className="text-sm font-bold text-slate-800">Human Ownership Probability</p>
                   <p className="text-xs text-muted-foreground">Compared to unique writing fingerprint</p>
                 </div>
               </div>
