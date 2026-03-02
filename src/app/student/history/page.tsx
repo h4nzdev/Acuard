@@ -29,6 +29,7 @@ import {
 import { getSessions } from "@/lib/storage"
 import { StudentSession } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 export default function StudentHistory() {
   const [sessions, setSessions] = useState<StudentSession[]>([])
@@ -155,8 +156,10 @@ export default function StudentHistory() {
                     {session.lastActive}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+                      <Link href={`/student/assessments/${session.assessmentId}`}>
+                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                      </Link>
                     </Button>
                   </TableCell>
                 </TableRow>
