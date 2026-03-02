@@ -11,7 +11,8 @@ import {
   Search, 
   Inbox,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Unlock
 } from "lucide-react"
 import { 
   Table, 
@@ -29,8 +30,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { getSessions, deleteSession } from "@/lib/storage"
+import { getSessions, deleteSession, updateSession } from "@/lib/storage"
 import { StudentSession } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
 
@@ -54,6 +56,22 @@ export default function LiveMonitoring() {
     toast({
       title: "Session Removed",
       description: "The student session has been cleared from the live feed.",
+    })
+  }
+
+  const handleUnlock = (session: StudentSession) => {
+    const updated: StudentSession = {
+      ...session,
+      status: 'In Progress',
+      warningCount: 0,
+      riskScore: 'Normal',
+      lastActive: new Date().toLocaleTimeString()
+    }
+    updateSession(updated)
+    setSessions(getSessions())
+    toast({
+      title: "Session Unlocked",
+      description: `Access for ${session.studentName} has been restored.`,
     })
   }
 
@@ -114,7 +132,7 @@ export default function LiveMonitoring() {
             </TableHeader>
             <TableBody>
               {filteredSessions.map((session) => (
-                <TableRow key={session.studentId} className="hover:bg-slate-50 transition-colors">
+                <TableRow key={`${session.studentId}-${session.assessmentId}`} className="hover:bg-slate-50 transition-colors">
                   <TableCell className="py-5">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-800">{session.studentName}</span>
@@ -162,6 +180,18 @@ export default function LiveMonitoring() {
                               <ExternalLink className="w-4 h-4" /> View Analytics
                             </Link>
                           </DropdownMenuItem>
+                          
+                          {session.status === 'Locked' && (
+                            <DropdownMenuItem 
+                              className="gap-2 text-green-600 focus:text-green-700 cursor-pointer"
+                              onClick={() => handleUnlock(session)}
+                            >
+                              <Unlock className="w-4 h-4" /> Unlock Session
+                            </DropdownMenuItem>
+                          )}
+
+                          <DropdownMenuSeparator />
+                          
                           <DropdownMenuItem 
                             className="gap-2 text-destructive focus:text-destructive cursor-pointer"
                             onClick={() => handleDelete(session.studentId)}
