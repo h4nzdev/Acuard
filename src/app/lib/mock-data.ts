@@ -1,9 +1,16 @@
+export interface Question {
+  id: string;
+  text: string;
+  points: number;
+}
+
 export interface Assessment {
   id: string;
   title: string;
   description: string;
   policy: 'Not Allowed' | 'Allowed but Monitored' | 'Fully Allowed';
   durationMinutes: number;
+  questions: Question[];
 }
 
 export interface StudentSession {
@@ -16,7 +23,5 @@ export interface StudentSession {
   lastActive: Date;
 }
 
-// Data is now managed via localStorage in src/lib/storage.ts
-// These empty exports prevent build errors while we migrate components
 export const MOCK_ASSESSMENTS: Assessment[] = [];
 export const MOCK_SESSIONS: StudentSession[] = [];
