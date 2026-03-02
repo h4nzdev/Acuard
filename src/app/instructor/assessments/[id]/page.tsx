@@ -13,7 +13,8 @@ import {
   Copy,
   Type,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  ListTodo
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -161,6 +162,24 @@ export default function AssessmentDetails() {
                         <p className="text-slate-800 font-medium text-lg leading-snug">{q.text}</p>
                       </div>
 
+                      {q.type === 'Multiple Choice' && q.choices && (
+                        <div className="grid grid-cols-2 gap-3 mt-4">
+                          {q.choices.map((choice, cIdx) => (
+                            <div key={cIdx} className={cn(
+                              "flex items-center gap-3 p-3 rounded-lg border text-sm",
+                              q.correctAnswer === (q.choiceType === 'Custom' ? choice : String.fromCharCode(65 + cIdx))
+                                ? "bg-green-50 border-green-200 text-green-900" 
+                                : "bg-slate-50 border-slate-100 text-slate-600"
+                            )}>
+                              <div className="w-6 h-6 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold shrink-0">
+                                {String.fromCharCode(65 + cIdx)}
+                              </div>
+                              {q.choiceType === 'Custom' ? choice : `Option ${String.fromCharCode(65 + cIdx)}`}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
@@ -172,7 +191,7 @@ export default function AssessmentDetails() {
                     
                     <div className="flex flex-col items-end gap-3 shrink-0">
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase">
-                        {q.type === 'Text Area' ? <Type className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
+                        {q.type === 'Text Area' ? <Type className="w-3 h-3" /> : q.type === 'Multiple Choice' ? <ListTodo className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
                         {q.type}
                       </div>
                       {q.allowCopyPaste ? (

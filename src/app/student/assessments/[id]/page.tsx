@@ -1,9 +1,8 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { FileText, Save, Send, AlertCircle, Clock, Info } from "lucide-react"
+import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -12,6 +11,8 @@ import { getAssessments, saveSession, getSessions, updateSession } from "@/lib/s
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 
 export default function ActiveAssessment() {
   const params = useParams()
@@ -195,15 +196,38 @@ export default function ActiveAssessment() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Textarea 
-                  placeholder="Enter your response here..."
-                  className="min-h-[200px] text-base leading-relaxed focus-visible:ring-accent"
-                  value={answers[q.id] || ""}
-                  onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                  onContextMenu={(e) => !q.allowCopyPaste && e.preventDefault()}
-                  onPaste={(e) => !q.allowCopyPaste && e.preventDefault()}
-                />
-                {!q.allowCopyPaste && (
+                {q.type === 'Multiple Choice' ? (
+                  <RadioGroup 
+                    value={answers[q.id] || ""} 
+                    onValueChange={(val) => handleUpdateAnswer(q.id, val)}
+                    className="space-y-3"
+                  >
+                    {[0, 1, 2, 3].map((idx) => {
+                      const choiceLabel = String.fromCharCode(65 + idx)
+                      const choiceValue = q.choiceType === 'Custom' ? q.choices?.[idx] || choiceLabel : choiceLabel
+                      return (
+                        <div key={idx} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                          <RadioGroupItem value={choiceValue} id={`q-${q.id}-choice-${idx}`} />
+                          <Label htmlFor={`q-${q.id}-choice-${idx}`} className="flex-1 font-medium cursor-pointer">
+                            <span className="text-primary mr-2 font-bold">{choiceLabel}.</span>
+                            {q.choiceType === 'Custom' ? choiceValue : `Option ${choiceLabel}`}
+                          </Label>
+                        </div>
+                      )
+                    })}
+                  </RadioGroup>
+                ) : (
+                  <Textarea 
+                    placeholder="Enter your response here..."
+                    className="min-h-[200px] text-base leading-relaxed focus-visible:ring-accent"
+                    value={answers[q.id] || ""}
+                    onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                    onContextMenu={(e) => !q.allowCopyPaste && e.preventDefault()}
+                    onPaste={(e) => !q.allowCopyPaste && e.preventDefault()}
+                  />
+                )}
+                
+                {!q.allowCopyPaste && q.type !== 'Multiple Choice' && (
                   <p className="text-[10px] text-destructive font-black uppercase mt-3 flex items-center gap-1.5">
                     <AlertCircle className="w-3 h-3" /> Copy-Paste is strictly disabled for this item.
                   </p>

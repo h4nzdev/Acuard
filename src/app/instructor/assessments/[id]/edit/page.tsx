@@ -16,7 +16,8 @@ import {
   Loader2,
   FileText,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  ListTodo
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -79,13 +80,36 @@ function EditAssessmentForm() {
       points: 10,
       type: 'Questionnaire',
       allowCopyPaste: false,
-      correctAnswer: ""
+      correctAnswer: "",
+      choices: ["", "", "", ""],
+      choiceType: 'ABCD'
     }
     setQuestions([...questions, newQuestion])
   }
 
   const handleUpdateQuestion = (id: string, updates: Partial<Question>) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q))
+    setQuestions(questions.map(q => {
+      if (q.id === id) {
+        const updated = { ...q, ...updates }
+        if (updated.type === 'Multiple Choice' && !updated.choices) {
+          updated.choices = ["", "", "", ""]
+          updated.choiceType = updated.choiceType || 'ABCD'
+        }
+        return updated
+      }
+      return q
+    }))
+  }
+
+  const handleChoiceUpdate = (qId: string, index: number, value: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === qId && q.choices) {
+        const newChoices = [...q.choices]
+        newChoices[index] = value
+        return { ...q, choices: newChoices }
+      }
+      return q
+    }))
   }
 
   const handleRemoveQuestion = (id: string) => {
@@ -138,12 +162,18 @@ function EditAssessmentForm() {
       return
     }
 
-    // Check if all questions have answers
-    const incompleteQuestion = questions.find(q => !q.text || !q.correctAnswer)
+    const incompleteQuestion = questions.find(q => {
+      if (!q.text || !q.correctAnswer) return true
+      if (q.type === 'Multiple Choice') {
+        if (q.choiceType === 'Custom' && q.choices?.some(c => !c)) return true
+      }
+      return false
+    })
+
     if (incompleteQuestion) {
       toast({
         title: "Incomplete Questions",
-        description: "Every question must have a question text and a final correct answer.",
+        description: "Every question must have a question text and a final correct answer. Check Multiple Choice options.",
         variant: "destructive"
       })
       return
@@ -391,16 +421,79 @@ function EditAssessmentForm() {
                           </Button>
                         </div>
 
+                        {q.type === 'Multiple Choice' && (
+                          <div className="space-y-4 p-4 bg-slate-50 rounded-lg border">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs uppercase font-bold text-slate-500">Choice Settings</Label>
+                              <RadioGroup 
+                                value={q.choiceType} 
+                                onValueChange={(val) => handleUpdateQuestion(q.id, { choiceType: val as any })}
+                                className="flex gap-4"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="ABCD" id={`edit-choice-abcd-${q.id}`} />
+                                  <Label htmlFor={`edit-choice-abcd-${q.id}`} className="text-xs font-bold cursor-pointer">A-B-C-D</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="Custom" id={`edit-choice-custom-${q.id}`} />
+                                  <Label htmlFor={`edit-choice-custom-${q.id}`} className="text-xs font-bold cursor-pointer">Custom Labels</Label>
+                                </div>
+                              </RadioGroup>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-3">
+                              {(q.choices || ["", "", "", ""]).map((choice, cIdx) => (
+                                <div key={cIdx} className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                                    {String.fromCharCode(65 + cIdx)}
+                                  </div>
+                                  {q.choiceType === 'Custom' ? (
+                                    <Input 
+                                      placeholder={`Choice ${String.fromCharCode(65 + cIdx)} content...`}
+                                      value={choice}
+                                      onChange={(e) => handleChoiceUpdate(q.id, cIdx, e.target.value)}
+                                      className="h-9"
+                                    />
+                                  ) : (
+                                    <div className="text-sm font-medium text-slate-500 italic">
+                                      Fixed Label: {String.fromCharCode(65 + cIdx)}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="space-y-2">
                           <Label className="text-xs uppercase font-bold text-primary flex items-center gap-1.5">
                             <CheckCircle2 className="w-3 h-3" /> Final Correct Answer
                           </Label>
-                          <Textarea 
-                            placeholder="Enter the correct reference answer for this question..." 
-                            value={q.correctAnswer}
-                            onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
-                            className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
-                          />
+                          {q.type === 'Multiple Choice' ? (
+                            <RadioGroup 
+                              value={q.correctAnswer} 
+                              onValueChange={(val) => handleUpdateQuestion(q.id, { correctAnswer: val })}
+                              className="grid grid-cols-4 gap-2"
+                            >
+                              {[0, 1, 2, 3].map((idx) => {
+                                const label = String.fromCharCode(65 + idx)
+                                const value = q.choiceType === 'Custom' ? q.choices?.[idx] || label : label
+                                return (
+                                  <div key={idx} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={value} id={`edit-correct-${q.id}-${idx}`} />
+                                    <Label htmlFor={`edit-correct-${q.id}-${idx}`} className="text-xs font-medium">{label}</Label>
+                                  </div>
+                                )
+                              })}
+                            </RadioGroup>
+                          ) : (
+                            <Textarea 
+                              placeholder="Enter the correct reference answer for this question..." 
+                              value={q.correctAnswer}
+                              onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
+                              className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
+                            />
+                          )}
                         </div>
                         
                         <div className="grid grid-cols-2 gap-6 pt-4 border-t">
@@ -409,15 +502,21 @@ function EditAssessmentForm() {
                             <RadioGroup 
                               value={q.type} 
                               onValueChange={(val) => handleUpdateQuestion(q.id, { type: val as any })}
-                              className="flex gap-4"
+                              className="flex flex-wrap gap-4"
                             >
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Questionnaire" id={`q-type-q-${q.id}`} />
-                                <Label htmlFor={`q-type-q-${q.id}`} className="font-medium cursor-pointer">Questionnaire</Label>
+                                <RadioGroupItem value="Questionnaire" id={`edit-q-type-q-${q.id}`} />
+                                <Label htmlFor={`edit-q-type-q-${q.id}`} className="font-medium cursor-pointer">Questionnaire</Label>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Text Area" id={`q-type-t-${q.id}`} />
-                                <Label htmlFor={`q-type-t-${q.id}`} className="font-medium cursor-pointer">Text Area</Label>
+                                <RadioGroupItem value="Text Area" id={`edit-q-type-t-${q.id}`} />
+                                <Label htmlFor={`edit-q-type-t-${q.id}`} className="font-medium cursor-pointer">Text Area</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Multiple Choice" id={`edit-q-type-m-${q.id}`} />
+                                <Label htmlFor={`edit-q-type-m-${q.id}`} className="font-medium cursor-pointer flex items-center gap-1.5">
+                                  <ListTodo className="w-3.5 h-3.5" /> Multiple Choice
+                                </Label>
                               </div>
                             </RadioGroup>
                           </div>
@@ -439,13 +538,13 @@ function EditAssessmentForm() {
                                 policy === 'Not Allowed' ? "bg-slate-100 opacity-50 cursor-not-allowed" : "bg-slate-50"
                               )}>
                                 <Checkbox 
-                                  id={`copy-paste-${q.id}`} 
+                                  id={`edit-copy-paste-${q.id}`} 
                                   checked={policy === 'Not Allowed' ? false : q.allowCopyPaste}
                                   onCheckedChange={(checked) => handleUpdateQuestion(q.id, { allowCopyPaste: !!checked })}
                                   disabled={policy === 'Not Allowed'}
                                 />
                                 <Label 
-                                  htmlFor={`copy-paste-${q.id}`}
+                                  htmlFor={`edit-copy-paste-${q.id}`}
                                   className={cn(
                                     "text-xs font-bold flex items-center gap-1.5",
                                     policy === 'Not Allowed' ? "cursor-not-allowed" : "cursor-pointer"

@@ -2,9 +2,11 @@ export interface Question {
   id: string;
   text: string;
   points: number;
-  type: 'Questionnaire' | 'Text Area';
+  type: 'Questionnaire' | 'Text Area' | 'Multiple Choice';
   allowCopyPaste: boolean;
   correctAnswer: string;
+  choices?: string[];
+  choiceType?: 'ABCD' | 'Custom';
 }
 
 export interface Assessment {

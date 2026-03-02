@@ -16,7 +16,8 @@ import {
   Loader2,
   FileText,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  ListTodo
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -54,13 +55,37 @@ export default function NewAssessment() {
       points: 10,
       type: 'Questionnaire',
       allowCopyPaste: false,
-      correctAnswer: ""
+      correctAnswer: "",
+      choices: ["", "", "", ""],
+      choiceType: 'ABCD'
     }
     setQuestions([...questions, newQuestion])
   }
 
   const handleUpdateQuestion = (id: string, updates: Partial<Question>) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q))
+    setQuestions(questions.map(q => {
+      if (q.id === id) {
+        const updated = { ...q, ...updates }
+        // If switching to Multiple Choice and choices don't exist, init them
+        if (updated.type === 'Multiple Choice' && !updated.choices) {
+          updated.choices = ["", "", "", ""]
+          updated.choiceType = updated.choiceType || 'ABCD'
+        }
+        return updated
+      }
+      return q
+    }))
+  }
+
+  const handleChoiceUpdate = (qId: string, index: number, value: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === qId && q.choices) {
+        const newChoices = [...q.choices]
+        newChoices[index] = value
+        return { ...q, choices: newChoices }
+      }
+      return q
+    }))
   }
 
   const handleRemoveQuestion = (id: string) => {
@@ -122,12 +147,18 @@ export default function NewAssessment() {
       return
     }
 
-    // Check if all questions have answers
-    const incompleteQuestion = questions.find(q => !q.text || !q.correctAnswer)
+    const incompleteQuestion = questions.find(q => {
+      if (!q.text || !q.correctAnswer) return true
+      if (q.type === 'Multiple Choice') {
+        if (q.choiceType === 'Custom' && q.choices?.some(c => !c)) return true
+      }
+      return false
+    })
+
     if (incompleteQuestion) {
       toast({
         title: "Incomplete Questions",
-        description: "Every question must have a question text and a final correct answer.",
+        description: "Ensure all questions have text, a correct answer, and all choices filled if using Custom Multiple Choice.",
         variant: "destructive"
       })
       return
@@ -367,16 +398,79 @@ export default function NewAssessment() {
                           </Button>
                         </div>
 
+                        {q.type === 'Multiple Choice' && (
+                          <div className="space-y-4 p-4 bg-slate-50 rounded-lg border">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs uppercase font-bold text-slate-500">Choice Settings</Label>
+                              <RadioGroup 
+                                value={q.choiceType} 
+                                onValueChange={(val) => handleUpdateQuestion(q.id, { choiceType: val as any })}
+                                className="flex gap-4"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="ABCD" id={`choice-abcd-${q.id}`} />
+                                  <Label htmlFor={`choice-abcd-${q.id}`} className="text-xs font-bold cursor-pointer">A-B-C-D</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="Custom" id={`choice-custom-${q.id}`} />
+                                  <Label htmlFor={`choice-custom-${q.id}`} className="text-xs font-bold cursor-pointer">Custom Labels</Label>
+                                </div>
+                              </RadioGroup>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-3">
+                              {(q.choices || ["", "", "", ""]).map((choice, cIdx) => (
+                                <div key={cIdx} className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                                    {String.fromCharCode(65 + cIdx)}
+                                  </div>
+                                  {q.choiceType === 'Custom' ? (
+                                    <Input 
+                                      placeholder={`Choice ${String.fromCharCode(65 + cIdx)} content...`}
+                                      value={choice}
+                                      onChange={(e) => handleChoiceUpdate(q.id, cIdx, e.target.value)}
+                                      className="h-9"
+                                    />
+                                  ) : (
+                                    <div className="text-sm font-medium text-slate-500 italic">
+                                      Fixed Label: {String.fromCharCode(65 + cIdx)}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="space-y-2">
                           <Label className="text-xs uppercase font-bold text-primary flex items-center gap-1.5">
                             <CheckCircle2 className="w-3 h-3" /> Final Correct Answer
                           </Label>
-                          <Textarea 
-                            placeholder="Enter the correct reference answer for this question..." 
-                            value={q.correctAnswer}
-                            onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
-                            className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
-                          />
+                          {q.type === 'Multiple Choice' ? (
+                            <RadioGroup 
+                              value={q.correctAnswer} 
+                              onValueChange={(val) => handleUpdateQuestion(q.id, { correctAnswer: val })}
+                              className="grid grid-cols-4 gap-2"
+                            >
+                              {[0, 1, 2, 3].map((idx) => {
+                                const label = String.fromCharCode(65 + idx)
+                                const value = q.choiceType === 'Custom' ? q.choices?.[idx] || label : label
+                                return (
+                                  <div key={idx} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={value} id={`correct-${q.id}-${idx}`} />
+                                    <Label htmlFor={`correct-${q.id}-${idx}`} className="text-xs font-medium">{label}</Label>
+                                  </div>
+                                )
+                              })}
+                            </RadioGroup>
+                          ) : (
+                            <Textarea 
+                              placeholder="Enter the correct reference answer for this question..." 
+                              value={q.correctAnswer}
+                              onChange={(e) => handleUpdateQuestion(q.id, { correctAnswer: e.target.value })}
+                              className="min-h-[80px] border-primary/20 focus-visible:ring-primary"
+                            />
+                          )}
                         </div>
                         
                         <div className="grid grid-cols-2 gap-6 pt-4 border-t">
@@ -385,7 +479,7 @@ export default function NewAssessment() {
                             <RadioGroup 
                               value={q.type} 
                               onValueChange={(val) => handleUpdateQuestion(q.id, { type: val as any })}
-                              className="flex gap-4"
+                              className="flex flex-wrap gap-4"
                             >
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Questionnaire" id={`q-type-q-${q.id}`} />
@@ -394,6 +488,12 @@ export default function NewAssessment() {
                               <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="Text Area" id={`q-type-t-${q.id}`} />
                                 <Label htmlFor={`q-type-t-${q.id}`} className="font-medium cursor-pointer">Text Area</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Multiple Choice" id={`q-type-m-${q.id}`} />
+                                <Label htmlFor={`q-type-m-${q.id}`} className="font-medium cursor-pointer flex items-center gap-1.5">
+                                  <ListTodo className="w-3.5 h-3.5" /> Multiple Choice
+                                </Label>
                               </div>
                             </RadioGroup>
                           </div>
@@ -430,11 +530,6 @@ export default function NewAssessment() {
                                   <Copy className="w-3 h-3" /> Allow Paste
                                 </Label>
                               </div>
-                              {policy === 'Not Allowed' && (
-                                <span className="text-[10px] text-destructive font-bold uppercase animate-pulse">
-                                  Disabled by Policy
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
