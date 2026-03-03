@@ -22,6 +22,7 @@ import { getAssessments, getSessions, getStudentBaseline, getGlobalSettings, sav
 import { Assessment, StudentSession } from "@/app/lib/mock-data"
 import { useRouter } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
+import { studentWritingFingerprintBaseline } from "@/ai/flows/student-writing-fingerprint-baseline"
 
 export default function StudentAssessments() {
   const router = useRouter()
@@ -67,7 +68,7 @@ export default function StudentAssessments() {
     }
   }, [baselineText, startTime])
 
-  const handleBaselineSubmit = () => {
+  const handleBaselineSubmit = async () => {
     if (baselineText.length < 50) {
       toast({
         title: "Sample too short",
@@ -80,27 +81,34 @@ export default function StudentAssessments() {
     if (!studentId) return
 
     setIsSubmittingBaseline(true)
+    const settings = getGlobalSettings()
     
-    // Mock processing for frontend setup
-    setTimeout(() => {
-      const mockResult = {
+    try {
+      // Establish AI Baseline
+      const analysis = await studentWritingFingerprintBaseline({
+        writingSample: baselineText,
         typingSpeedWpm: wpm || 45,
-        writingStyleSummary: "Established via assessment gateway.",
-        vocabularyAnalysis: "Consistent with academic standards.",
-        sentenceStructureAnalysis: "Standard complexity detected.",
-        sentimentAnalysis: "Objective.",
-        potentialAIIndicators: ["None detected."]
-      }
+        apiKey: settings.geminiApiKey
+      })
       
-      saveStudentBaseline(studentId, mockResult)
+      // Save full vector + AI analysis
+      saveStudentBaseline(studentId, analysis)
       setHasBaseline(true)
-      setIsSubmittingBaseline(false)
       
       toast({
         title: "Baseline Established",
         description: "Your writing fingerprint is recorded. Assessments are now unlocked."
       })
-    }, 1500)
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: "AI Analysis Failed",
+        description: "Could not generate biometric profile. Please check Instructor AI settings.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmittingBaseline(false)
+    }
   }
 
   if (!isMounted) return null

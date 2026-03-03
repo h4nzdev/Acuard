@@ -31,7 +31,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
-import { getAssessments, updateAssessment } from "@/lib/storage"
+import { getAssessments, updateAssessment, getGlobalSettings } from "@/lib/storage"
 import { Assessment, Question } from "@/app/lib/mock-data"
 import { extractQuestionsFromImage } from "@/ai/flows/ocr-questions-flow"
 import { cn } from "@/lib/utils"
@@ -127,11 +127,15 @@ function EditAssessmentForm() {
     if (!file) return
 
     setIsOcrLoading(true)
+    const settings = getGlobalSettings()
     const reader = new FileReader()
     reader.onload = async (e) => {
       const base64 = e.target?.result as string
       try {
-        const result = await extractQuestionsFromImage({ photoDataUri: base64 })
+        const result = await extractQuestionsFromImage({ 
+          photoDataUri: base64,
+          apiKey: settings.geminiApiKey
+        })
         const ocrQuestions = result.questions.map(q => ({
           id: Math.random().toString(36).substr(2, 9),
           text: q.text,
@@ -149,7 +153,7 @@ function EditAssessmentForm() {
       } catch (err) {
         toast({
           title: "OCR Failed",
-          description: "Could not extract text from the image.",
+          description: "Could not extract text from the image. Please check Instructor AI settings.",
           variant: "destructive"
         })
       } finally {
@@ -424,7 +428,7 @@ function EditAssessmentForm() {
                               className="min-h-[80px]"
                             />
                           </div>
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)} className="text-destructive hover:bg-destructive/10">
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(id)} className="text-destructive hover:bg-destructive/10">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>

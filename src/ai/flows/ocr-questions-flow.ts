@@ -24,12 +24,16 @@ const OCRQuestionsInputSchema = z.object({
     .describe(
       "A photo of a question paper or assessment, as a data URI. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  apiKey: z.string().optional().describe('Optional Gemini API Key provided by the user.'),
 });
 export type OCRQuestionsInput = z.infer<typeof OCRQuestionsInputSchema>;
 
 export async function extractQuestionsFromImage(
   input: OCRQuestionsInput
 ): Promise<OCRQuestionsOutput> {
+  if (input.apiKey) {
+    process.env.GOOGLE_GENAI_API_KEY = input.apiKey;
+  }
   return ocrQuestionsFlow(input);
 }
 

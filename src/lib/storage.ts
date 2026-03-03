@@ -15,6 +15,7 @@ export interface GlobalSettings {
   notifyOnLock: boolean;
   institutionName: string;
   requireBaseline: boolean;
+  geminiApiKey?: string;
 }
 
 const INITIAL_ASSESSMENTS: Assessment[] = [];
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   notifyOnLock: true,
   institutionName: "Acuard University",
   requireBaseline: true,
+  geminiApiKey: "",
 };
 
 export const getAssessments = (): Assessment[] => {

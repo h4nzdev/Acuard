@@ -7,7 +7,7 @@ import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { updateSession, getSessions, getStudents, updateStudent, getStudentBaseline } from "@/lib/storage"
+import { updateSession, getSessions, getStudents, updateStudent, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
 import { TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 
@@ -159,6 +159,7 @@ export function MonitoringEngine({
       }
 
       const baseline = getStudentBaseline(studentId)
+      const settings = getGlobalSettings()
       
       if (baseline) {
         let deviationPenalty = 0
@@ -191,7 +192,8 @@ export function MonitoringEngine({
           baselineWritingFingerprint: baseline ? JSON.stringify(baseline) : "Standard baseline",
           typingSpeed: currentWpm,
           pasteFrequency: pasteEvents.current,
-          tabSwitchCount: tabSwitches.current
+          tabSwitchCount: tabSwitches.current,
+          apiKey: settings.geminiApiKey
         })
 
         setRiskScore(result.riskScore)

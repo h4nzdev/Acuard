@@ -11,7 +11,8 @@ import {
   Building,
   ShieldCheck,
   AlertTriangle,
-  Fingerprint
+  Fingerprint,
+  KeyRound
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -80,6 +81,35 @@ export default function PoliciesSettings() {
       </div>
 
       <div className="grid gap-6">
+        <Card className="shadow-sm border-none ring-1 ring-slate-200">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              <CardTitle className="text-xl font-headline">AI Configuration</CardTitle>
+            </div>
+            <CardDescription>Setup your Gemini API key to power GenAI analysis features.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="gemini-key">Gemini API Key</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  id="gemini-key" 
+                  type="password"
+                  placeholder="Enter your Google AI API Key..."
+                  className="pl-10 h-11"
+                  value={settings.geminiApiKey || ""} 
+                  onChange={(e) => setSettings({...settings, geminiApiKey: e.target.value})}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                This key is stored locally and used to authenticate Genkit flows for writing analysis and OCR questions.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="shadow-sm border-none ring-1 ring-slate-200">
           <CardHeader>
             <div className="flex items-center gap-2">

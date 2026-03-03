@@ -31,7 +31,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/hooks/use-toast"
-import { saveAssessment } from "@/lib/storage"
+import { saveAssessment, getGlobalSettings } from "@/lib/storage"
 import { Assessment, Question } from "@/app/lib/mock-data"
 import { extractQuestionsFromImage } from "@/ai/flows/ocr-questions-flow"
 import { cn } from "@/lib/utils"
@@ -104,11 +104,15 @@ export default function NewAssessment() {
     if (!file) return
 
     setIsOcrLoading(true)
+    const settings = getGlobalSettings()
     const reader = new FileReader()
     reader.onload = async (e) => {
       const base64 = e.target?.result as string
       try {
-        const result = await extractQuestionsFromImage({ photoDataUri: base64 })
+        const result = await extractQuestionsFromImage({ 
+          photoDataUri: base64,
+          apiKey: settings.geminiApiKey
+        })
         const ocrQuestions = result.questions.map(q => ({
           id: Math.random().toString(36).substr(2, 9),
           text: q.text,
@@ -126,7 +130,7 @@ export default function NewAssessment() {
       } catch (err) {
         toast({
           title: "OCR Failed",
-          description: "Could not extract text from the image. Please try again or add manually.",
+          description: "Could not extract text from the image. Please check Instructor AI settings.",
           variant: "destructive"
         })
       } finally {

@@ -19,6 +19,7 @@ const StudentWritingFingerprintBaselineInputSchema = z.object({
   typingSpeedWpm: z
     .number()
     .describe('The student\'s average typing speed in words per minute during the assessment.'),
+  apiKey: z.string().optional().describe('Optional Gemini API Key provided by the user.'),
 });
 export type StudentWritingFingerprintBaselineInput = z.infer<
   typeof StudentWritingFingerprintBaselineInputSchema
@@ -60,6 +61,9 @@ export type StudentWritingFingerprintBaselineOutput = z.infer<
 export async function studentWritingFingerprintBaseline(
   input: StudentWritingFingerprintBaselineInput
 ): Promise<StudentWritingFingerprintBaselineOutput> {
+  if (input.apiKey) {
+    process.env.GOOGLE_GENAI_API_KEY = input.apiKey;
+  }
   return studentWritingFingerprintBaselineFlow(input);
 }
 

@@ -34,6 +34,7 @@ const PredictiveIntegrityRiskScoreInputSchema = z.object({
   tabSwitchCount: z
     .number()
     .describe('The number of tab switches detected during the current assessment.'),
+  apiKey: z.string().optional().describe('Optional Gemini API Key provided by the user.'),
 });
 export type PredictiveIntegrityRiskScoreInput = z.infer<
   typeof PredictiveIntegrityRiskScoreInputSchema
@@ -58,6 +59,9 @@ export type PredictiveIntegrityRiskScoreOutput = z.infer<
 export async function predictIntegrityRiskScore(
   input: PredictiveIntegrityRiskScoreInput
 ): Promise<PredictiveIntegrityRiskScoreOutput> {
+  if (input.apiKey) {
+    process.env.GOOGLE_GENAI_API_KEY = input.apiKey;
+  }
   return predictiveIntegrityRiskScoreFlow(input);
 }
 
