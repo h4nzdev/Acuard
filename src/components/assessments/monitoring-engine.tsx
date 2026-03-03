@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ShieldAlert, AlertCircle, Eye, Loader2, Minimize2, Maximize2, Clock, Users } from "lucide-react"
+import { ShieldAlert, AlertCircle, Eye, Loader2, Minimize2, Maximize2, Clock, Users, ShieldX } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
@@ -75,6 +75,7 @@ export function MonitoringEngine({
     const loadFaceModel = async () => {
       try {
         await tf.ready()
+        // BlazeFace is lightweight and handles multiple faces well
         const loadedModel = await blazeface.load()
         modelRef.current = loadedModel
         setFaceStatus("Tracking")
@@ -240,7 +241,7 @@ export function MonitoringEngine({
     return () => clearInterval(interval)
   }, [studentId, assessmentId])
 
-  // REAL-TIME COMPUTER VISION LOOP
+  // REAL-TIME COMPUTER VISION LOOP (Enhanced for Multi-Face)
   useEffect(() => {
     if (!modelRef.current || !hasCameraPermission) return
 
@@ -251,7 +252,6 @@ export function MonitoringEngine({
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
-        // Set canvas to video size
         if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
           canvas.width = video.videoWidth
           canvas.height = video.videoHeight
@@ -265,19 +265,15 @@ export function MonitoringEngine({
           if (predictions.length === 0) {
             setFaceStatus("Missing")
             faceMissingCount.current++
-            if (faceMissingCount.current >= 30) { // Approx 15 seconds at 500ms
+            if (faceMissingCount.current >= 30) { // Approx 15 seconds
               triggerPenalty(10, "Focus on the screen! Face not detected.")
               faceMissingCount.current = 0 
             }
           } else if (predictions.length > 1) {
             setFaceStatus("Multiple")
             multiFaceCount.current++
-            if (multiFaceCount.current >= 10) { // Trigger faster for multiple people
-              triggerPenalty(30, "Multiple people detected in frame! Immediate breach warning.")
-              multiFaceCount.current = 0
-            }
             
-            // Draw red boxes for multiple people
+            // Draw red boxes for ALL detected faces
             predictions.forEach((prediction: any) => {
               const start = prediction.topLeft as [number, number]
               const end = prediction.bottomRight as [number, number]
@@ -286,13 +282,22 @@ export function MonitoringEngine({
               ctx.strokeStyle = '#ef4444'
               ctx.lineWidth = 4
               ctx.strokeRect(start[0], start[1], size[0], size[1])
+              
+              ctx.fillStyle = '#ef4444'
+              ctx.font = 'bold 14px Inter'
+              ctx.fillText('UNAUTHORIZED', start[0], start[1] - 10)
             })
+
+            if (multiFaceCount.current >= 10) { // Approx 5 seconds
+              triggerPenalty(30, "Collaboration detected! Multiple faces identified in frame.")
+              multiFaceCount.current = 0
+            }
           } else {
             setFaceStatus("Tracking")
             faceMissingCount.current = 0
             multiFaceCount.current = 0
 
-            // Draw tracking box for single user
+            // Draw tracking box for single verified user
             const prediction = predictions[0] as any
             const start = prediction.topLeft as [number, number]
             const end = prediction.bottomRight as [number, number]
@@ -304,7 +309,6 @@ export function MonitoringEngine({
             ctx.strokeRect(start[0], start[1], size[0], size[1])
             ctx.setLineDash([])
             
-            // Draw "Focus Verified" label
             ctx.fillStyle = '#22c55e'
             ctx.font = 'bold 16px Inter'
             ctx.fillText('IDENTIFIED', start[0], start[1] - 10)
@@ -352,13 +356,16 @@ export function MonitoringEngine({
               </div>
               {isAnalyzing && <Loader2 className="w-3 h-3 animate-spin text-primary/60" />}
             </div>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsCollapsed(!isCollapsed)}>
-              {isCollapsed ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
-            </Button>
+            <div className="flex items-center gap-1">
+              {warningCount >= 2 && <ShieldX className="w-4 h-4 text-destructive animate-pulse mr-1" />}
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsCollapsed(!isCollapsed)}>
+                {isCollapsed ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+              </Button>
+            </div>
           </div>
 
           <div className={cn("p-4 space-y-4", isCollapsed && "hidden")}>
-            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border">
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border shadow-inner">
               <video 
                 ref={videoRef} 
                 className="w-full h-full object-cover" 
@@ -379,13 +386,15 @@ export function MonitoringEngine({
                 <div className="absolute inset-0 bg-destructive/20 flex flex-col items-center justify-center backdrop-blur-[1px] p-4 text-center">
                   <AlertCircle className="w-10 h-10 text-white animate-pulse mb-2" />
                   <p className="text-[10px] font-black text-white uppercase tracking-widest">Face Not Detected</p>
+                  <p className="text-[8px] text-white/80 mt-1">Please return to the assessment window</p>
                 </div>
               )}
 
               {faceStatus === 'Multiple' && (
                 <div className="absolute inset-0 bg-destructive/40 flex flex-col items-center justify-center backdrop-blur-[1px] p-4 text-center">
                   <Users className="w-10 h-10 text-white animate-bounce mb-2" />
-                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Unauthorized Presence</p>
+                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Collaboration Detected</p>
+                  <p className="text-[8px] text-white/80 mt-1">Only one person allowed in frame</p>
                 </div>
               )}
             </div>
@@ -399,17 +408,32 @@ export function MonitoringEngine({
                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Level</p>
                 <p className={cn(
                   "text-sm font-bold uppercase",
-                  riskScore === 'Normal' ? 'text-green-600' : 'text-orange-600'
+                  riskScore === 'Normal' ? 'text-green-600' : 
+                  riskScore === 'Suspicious' ? 'text-yellow-600' : 'text-destructive'
                 )}>{riskScore}</p>
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                <span>Warning Threshold</span>
-                <span>{warningCount}/3</span>
+                <span className={warningCount >= 2 ? "text-destructive" : ""}>Warning Threshold</span>
+                <span className={warningCount >= 2 ? "text-destructive font-black" : ""}>{warningCount}/3</span>
               </div>
-              <Progress value={(warningCount / 3) * 100} className="h-1.5" />
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={cn(
+                    "h-full transition-all duration-500",
+                    warningCount === 0 ? "bg-primary" :
+                    warningCount === 1 ? "bg-yellow-500" : "bg-destructive"
+                  )}
+                  style={{ width: `${(warningCount / 3) * 100}%` }}
+                />
+              </div>
+              {warningCount >= 2 && (
+                <p className="text-[8px] text-destructive font-bold uppercase animate-pulse">
+                  CRITICAL: Final warning before session termination
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
