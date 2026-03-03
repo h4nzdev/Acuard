@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 
 export default function ActiveAssessment() {
@@ -20,7 +21,7 @@ export default function ActiveAssessment() {
   const router = useRouter()
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = {earned: 0, total: 0}
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [finalScore, setFinalScore] = useState<{ earned: number, total: number } | null>(null)
   const [warningCount, setWarningCount] = useState(0)
@@ -28,6 +29,7 @@ export default function ActiveAssessment() {
   const [isMounted, setIsMounted] = useState(false)
   const [studentId, setStudentId] = useState<string>("")
   const [studentName, setStudentName] = useState<string>("")
+  const [isSubmittingState, setIsSubmittingState] = useState(false)
 
   const fullContent = Object.values(answers).join("\n\n")
 
@@ -123,7 +125,7 @@ export default function ActiveAssessment() {
       return
     }
 
-    setIsSubmitting(true)
+    setIsSubmittingState(true)
     
     let earned = 0
     let total = 0
@@ -175,7 +177,7 @@ export default function ActiveAssessment() {
     setTimeout(() => {
       setFinalScore({ earned, total })
       setIsSubmitted(true)
-      setIsSubmitting(false)
+      setIsSubmittingState(false)
       toast({
         title: "Assessment Submitted",
         description: "Your work has been securely uploaded."
@@ -277,8 +279,8 @@ export default function ActiveAssessment() {
             <Save className="w-4 h-4" />
             Save Draft
           </Button>
-          <Button className="gap-2 bg-accent hover:bg-accent/90 shadow-md font-bold" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? <span className="animate-pulse">Uploading...</span> : <><Send className="w-4 h-4" /> Submit</>}
+          <Button className="gap-2 bg-accent hover:bg-accent/90 shadow-md font-bold" onClick={handleSubmit} disabled={isSubmittingState}>
+            {isSubmittingState ? <span className="animate-pulse">Uploading...</span> : <><Send className="w-4 h-4" /> Submit</>}
           </Button>
         </div>
       </div>
