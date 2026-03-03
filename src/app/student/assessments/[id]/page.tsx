@@ -21,7 +21,6 @@ export default function ActiveAssessment() {
   const router = useRouter()
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = {earned: 0, total: 0}
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [finalScore, setFinalScore] = useState<{ earned: number, total: number } | null>(null)
   const [warningCount, setWarningCount] = useState(0)
