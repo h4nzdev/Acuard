@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -300,9 +299,9 @@ export default function AssessmentResultDetails() {
                 </div>
                 
                 {matchPercentage < 30 && (
-                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl animate-bounce">
+                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
                     <p className="text-destructive font-black text-xs uppercase tracking-tighter text-center flex flex-col items-center gap-1">
-                      <AlertTriangle className="w-4 h-4" />
+                      <ShieldAlert className="w-4 h-4" />
                       <span>Wait... is that really you? 🤨</span>
                     </p>
                   </div>

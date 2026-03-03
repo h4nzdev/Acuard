@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -58,7 +57,7 @@ export default function StudentSessionAnalytics() {
     const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
     const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0));
     
-    // Calculate Match Percentage (Real Algorithm)
+    // Calculate Match Percentage
     let matchScore = 100;
     matchScore -= (wpmVariance * 50); 
     matchScore -= (syntacticVariance * 40);
@@ -260,7 +259,7 @@ export default function StudentSessionAnalytics() {
                 </div>
 
                 {styleMatchPercentage < 30 && (
-                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl animate-pulse">
+                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
                     <p className="text-destructive font-black text-xs uppercase tracking-tighter text-center flex flex-col items-center gap-1">
                       <ShieldAlert className="w-4 h-4" />
                       <span>IDENTITY ALERT: Is that really them? 🧐</span>
