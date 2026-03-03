@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ShieldAlert, AlertCircle, Eye, Loader2, ChevronDown, ChevronUp, Minimize2, Maximize2, Clock, Camera, CameraOff } from "lucide-react"
+import { ShieldAlert, AlertCircle, Eye, Loader2, Minimize2, Maximize2, Clock, Users } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { updateSession, getSessions, getStudents, updateStudent, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
+import { updateSession, getSessions, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
 import { TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 import * as tf from '@tensorflow/tfjs'
@@ -31,6 +31,7 @@ export function MonitoringEngine({
   durationMinutes = 60
 }: MonitoringEngineProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [warningCount, setWarningCount] = useState(0)
@@ -40,9 +41,10 @@ export function MonitoringEngine({
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60)
   
   // Computer Vision State
-  const [faceStatus, setFaceStatus] = useState<"Tracking" | "Missing" | "Loading">("Loading")
+  const [faceStatus, setFaceStatus] = useState<"Tracking" | "Missing" | "Multiple" | "Loading">("Loading")
   const modelRef = useRef<blazeface.BlazeFaceModel | null>(null)
   const faceMissingCount = useRef(0)
+  const multiFaceCount = useRef(0)
 
   // Real-time Vectors
   const backspaceCount = useRef(0)
@@ -78,7 +80,7 @@ export function MonitoringEngine({
         setFaceStatus("Tracking")
       } catch (err) {
         console.error("TF Face Model Load Error:", err)
-        setFaceStatus("Missing") // Fallback
+        setFaceStatus("Missing") 
       }
     }
     loadFaceModel()
@@ -89,7 +91,9 @@ export function MonitoringEngine({
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true })
         setHasCameraPermission(true)
-        if (videoRef.current) videoRef.current.srcObject = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
       } catch (error) {
         setHasCameraPermission(false)
       }
@@ -155,10 +159,6 @@ export function MonitoringEngine({
   useEffect(() => {
     const interval = setInterval(async () => {
       const writing = currentWritingRef.current
-      
-      // Face detection check (Runs every 5 seconds normally, but handled here for biometric sync)
-      // Actually face detection should be more frequent
-      
       if (!writing || writing.length < 20 || !studentId) return
 
       setIsAnalyzing(true)
@@ -240,34 +240,82 @@ export function MonitoringEngine({
     return () => clearInterval(interval)
   }, [studentId, assessmentId])
 
-  // INDEPENDENT FACE DETECTION LOOP (5s check)
+  // REAL-TIME COMPUTER VISION LOOP
   useEffect(() => {
     if (!modelRef.current || !hasCameraPermission) return
 
-    const faceCheck = setInterval(async () => {
-      if (videoRef.current && videoRef.current.readyState === 4) {
+    const cvLoop = setInterval(async () => {
+      if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
+        const video = videoRef.current
+        const canvas = canvasRef.current
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        // Set canvas to video size
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+        }
+
         try {
-          const predictions = await modelRef.current!.estimateFaces(videoRef.current, false)
+          const predictions = await modelRef.current!.estimateFaces(video, false)
           
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+
           if (predictions.length === 0) {
             setFaceStatus("Missing")
             faceMissingCount.current++
-            // Only penalize if face is missing for 15 seconds (3 checks)
-            if (faceMissingCount.current >= 3) {
-              triggerPenalty(10, "Continuous face absence detected")
+            if (faceMissingCount.current >= 30) { // Approx 15 seconds at 500ms
+              triggerPenalty(10, "Focus on the screen! Face not detected.")
               faceMissingCount.current = 0 
             }
+          } else if (predictions.length > 1) {
+            setFaceStatus("Multiple")
+            multiFaceCount.current++
+            if (multiFaceCount.current >= 10) { // Trigger faster for multiple people
+              triggerPenalty(30, "Multiple people detected in frame! Immediate breach warning.")
+              multiFaceCount.current = 0
+            }
+            
+            // Draw red boxes for multiple people
+            predictions.forEach((prediction: any) => {
+              const start = prediction.topLeft as [number, number]
+              const end = prediction.bottomRight as [number, number]
+              const size = [end[0] - start[0], end[1] - start[1]]
+              
+              ctx.strokeStyle = '#ef4444'
+              ctx.lineWidth = 4
+              ctx.strokeRect(start[0], start[1], size[0], size[1])
+            })
           } else {
             setFaceStatus("Tracking")
             faceMissingCount.current = 0
+            multiFaceCount.current = 0
+
+            // Draw tracking box for single user
+            const prediction = predictions[0] as any
+            const start = prediction.topLeft as [number, number]
+            const end = prediction.bottomRight as [number, number]
+            const size = [end[0] - start[0], end[1] - start[1]]
+
+            ctx.strokeStyle = '#22c55e'
+            ctx.lineWidth = 3
+            ctx.setLineDash([10, 5])
+            ctx.strokeRect(start[0], start[1], size[0], size[1])
+            ctx.setLineDash([])
+            
+            // Draw "Focus Verified" label
+            ctx.fillStyle = '#22c55e'
+            ctx.font = 'bold 16px Inter'
+            ctx.fillText('IDENTIFIED', start[0], start[1] - 10)
           }
         } catch (err) {
-          console.error("Detection Loop Error:", err)
+          console.error("CV Loop Error:", err)
         }
       }
-    }, 5000)
+    }, 500)
 
-    return () => clearInterval(faceCheck)
+    return () => clearInterval(cvLoop)
   }, [hasCameraPermission])
 
   const formatTime = (seconds: number) => {
@@ -298,7 +346,7 @@ export function MonitoringEngine({
                     "ml-2 text-[8px] font-black uppercase",
                     faceStatus === 'Tracking' ? "text-green-600" : "text-destructive"
                   )}>
-                    {faceStatus === 'Tracking' ? "● Eyes On" : "● Attention Alert"}
+                    {faceStatus === 'Tracking' ? "● Eyes On" : faceStatus === 'Multiple' ? "● Collaboration Alert" : "● Attention Alert"}
                   </span>
                 </span>
               </div>
@@ -318,13 +366,26 @@ export function MonitoringEngine({
                 muted 
                 playsInline
               />
+              <canvas 
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full"
+              />
               <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-md border border-white/20">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live Monitor</span>
+                <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live Analysis</span>
               </div>
+              
               {faceStatus === 'Missing' && (
-                <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center backdrop-blur-[1px]">
-                  <AlertCircle className="w-10 h-10 text-white animate-pulse" />
+                <div className="absolute inset-0 bg-destructive/20 flex flex-col items-center justify-center backdrop-blur-[1px] p-4 text-center">
+                  <AlertCircle className="w-10 h-10 text-white animate-pulse mb-2" />
+                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Face Not Detected</p>
+                </div>
+              )}
+
+              {faceStatus === 'Multiple' && (
+                <div className="absolute inset-0 bg-destructive/40 flex flex-col items-center justify-center backdrop-blur-[1px] p-4 text-center">
+                  <Users className="w-10 h-10 text-white animate-bounce mb-2" />
+                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Unauthorized Presence</p>
                 </div>
               )}
             </div>
