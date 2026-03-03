@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -22,7 +23,6 @@ interface MonitoringEngineProps {
   durationMinutes?: number
 }
 
-// Utility to play a short warning beep using Web Audio API
 const playBeep = () => {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -31,16 +31,14 @@ const playBeep = () => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+    osc.frequency.setValueAtTime(880, ctx.currentTime); 
     gain.gain.setValueAtTime(0.1, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.1);
-  } catch (e) {
-    // Audio might be blocked by browser policy until interaction
-  }
+  } catch (e) {}
 };
 
 export function MonitoringEngine({ 
@@ -62,13 +60,11 @@ export function MonitoringEngine({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60)
   
-  // Computer Vision State
   const [faceStatus, setFaceStatus] = useState<"Tracking" | "Missing" | "Multiple" | "Loading">("Loading")
   const [model, setModel] = useState<blazeface.BlazeFaceModel | null>(null)
   const faceMissingCount = useRef(0)
   const multiFaceCount = useRef(0)
 
-  // Real-time Vectors
   const backspaceCount = useRef(0)
   const lastKeyTime = useRef<number>(Date.now())
   const pauses = useRef(0)
@@ -92,7 +88,6 @@ export function MonitoringEngine({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Setup TensorFlow Face Detection
   useEffect(() => {
     const loadFaceModel = async () => {
       try {
@@ -101,14 +96,12 @@ export function MonitoringEngine({
         setModel(loadedModel)
         setFaceStatus("Tracking")
       } catch (err) {
-        console.error("TF Face Model Load Error:", err)
         setFaceStatus("Missing") 
       }
     }
     loadFaceModel()
   }, [])
 
-  // Camera Permission and Stream Acquisition
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
@@ -116,7 +109,6 @@ export function MonitoringEngine({
         setHasCameraPermission(true)
         setStream(s)
       } catch (error) {
-        console.error("Camera access denied:", error)
         setHasCameraPermission(false)
       }
     }
@@ -129,7 +121,6 @@ export function MonitoringEngine({
     }
   }, [])
 
-  // Attach stream to video when both are ready
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream
@@ -160,7 +151,6 @@ export function MonitoringEngine({
   }, [integrityPoints])
 
   const triggerPenalty = (points: number, msg: string) => {
-    // ALWAYS Toast the violation so the student knows they were caught
     toast({
       title: "Integrity Violation",
       description: msg,
@@ -200,7 +190,6 @@ export function MonitoringEngine({
     })
   }
 
-  // AI & BIOMETRIC MONITORING LOOP
   useEffect(() => {
     const interval = setInterval(async () => {
       const writing = currentWritingRef.current
@@ -232,25 +221,6 @@ export function MonitoringEngine({
       const baseline = getStudentBaseline(studentId)
       const settings = getGlobalSettings()
       
-      if (baseline) {
-        let deviationPenalty = 0
-        const wpmDiff = Math.abs(currentWpm - baseline.wpm) / (baseline.wpm || 1)
-        if (wpmDiff > 0.5) deviationPenalty += 30
-        const complexityDiff = Math.abs(complexity - baseline.vocabComplexity)
-        if (complexityDiff > 3) deviationPenalty += 20
-        const sentenceDiff = Math.abs(avgSentenceLen - baseline.avgSentenceLength) / (baseline.avgSentenceLength || 1)
-        if (sentenceDiff > 1.0) deviationPenalty += 15
-
-        if (deviationPenalty > 0) {
-          triggerPenalty(deviationPenalty, "Behavioral signature mismatch detected")
-        } else {
-          toast({
-            title: "Integrity Verified",
-            description: "Typing cadence and syntax match your verified baseline.",
-          })
-        }
-      }
-
       try {
         const result = await predictIntegrityRiskScore({
           currentWritingSample: writing,
@@ -285,7 +255,6 @@ export function MonitoringEngine({
     return () => clearInterval(interval)
   }, [studentId, assessmentId])
 
-  // REAL-TIME COMPUTER VISION LOOP
   useEffect(() => {
     if (!model || !hasCameraPermission) return
 
@@ -303,43 +272,32 @@ export function MonitoringEngine({
 
         try {
           const predictions = await model.estimateFaces(video, false)
-          
           ctx.clearRect(0, 0, canvas.width, canvas.height)
 
           if (predictions.length === 0) {
             setFaceStatus("Missing")
             faceMissingCount.current++
-            
-            // Audible alert every 1 second while face is missing
-            if (faceMissingCount.current % 2 === 0) {
-              playBeep();
-            }
-
-            if (faceMissingCount.current >= 30) { // Approx 15 seconds at 500ms intervals
+            if (faceMissingCount.current % 2 === 0) playBeep();
+            if (faceMissingCount.current >= 30) {
               triggerPenalty(15, "Focus on the screen! Face not detected.")
               faceMissingCount.current = 0 
             }
           } else if (predictions.length > 1) {
             setFaceStatus("Multiple")
             multiFaceCount.current++
-            
             predictions.forEach((prediction: any) => {
               const rawStart = prediction.topLeft as [number, number]
               const rawEnd = prediction.bottomRight as [number, number]
               const size = [rawEnd[0] - rawStart[0], rawEnd[1] - rawStart[1]]
-              
               const mirroredX = canvas.width - rawEnd[0]
-              
               ctx.strokeStyle = '#ef4444'
               ctx.lineWidth = 4
               ctx.strokeRect(mirroredX, rawStart[1], size[0], size[1])
-              
               ctx.fillStyle = '#ef4444'
               ctx.font = 'bold 14px Inter'
               ctx.fillText('UNAUTHORIZED', mirroredX, rawStart[1] - 10)
             })
-
-            if (multiFaceCount.current >= 10) { // Approx 5 seconds
+            if (multiFaceCount.current >= 10) {
               triggerPenalty(30, "Collaboration detected! Multiple faces identified.")
               multiFaceCount.current = 0
             }
@@ -347,27 +305,21 @@ export function MonitoringEngine({
             setFaceStatus("Tracking")
             faceMissingCount.current = 0
             multiFaceCount.current = 0
-
             const prediction = predictions[0] as any
             const rawStart = prediction.topLeft as [number, number]
             const rawEnd = prediction.bottomRight as [number, number]
             const size = [rawEnd[0] - rawStart[0], rawEnd[1] - rawStart[1]]
-
             const mirroredX = canvas.width - rawEnd[0]
-
             ctx.strokeStyle = '#22c55e'
             ctx.lineWidth = 3
             ctx.setLineDash([10, 5])
             ctx.strokeRect(mirroredX, rawStart[1], size[0], size[1])
             ctx.setLineDash([])
-            
             ctx.fillStyle = '#22c55e'
             ctx.font = 'bold 16px Inter'
             ctx.fillText('IDENTIFIED', mirroredX, rawStart[1] - 10)
           }
-        } catch (err) {
-          console.error("CV Loop Error:", err)
-        }
+        } catch (err) {}
       }
     }, 500)
 
@@ -402,7 +354,7 @@ export function MonitoringEngine({
                     "ml-2 text-[8px] font-black uppercase",
                     faceStatus === 'Tracking' ? "text-green-600" : "text-destructive"
                   )}>
-                    {faceStatus === 'Tracking' ? "● Eyes On" : faceStatus === 'Multiple' ? "● Collaboration Alert" : "● Attention Alert"}
+                    {faceStatus === 'Tracking' ? "● Eyes On" : faceStatus === 'Multiple' ? "● Collaboration" : "● Attention Alert"}
                   </span>
                 </span>
               </div>
@@ -418,74 +370,51 @@ export function MonitoringEngine({
 
           <div className={cn("p-4 space-y-4", isCollapsed && "hidden")}>
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden border shadow-inner">
-              <video 
-                ref={videoRef} 
-                className="w-full h-full object-cover -scale-x-100" 
-                autoPlay 
-                muted 
-                playsInline
-              />
-              <canvas 
-                ref={canvasRef}
-                className="absolute inset-0 w-full h-full"
-              />
+              <video ref={videoRef} className="w-full h-full object-cover -scale-x-100" autoPlay muted playsInline />
+              <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
               <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-md border border-white/20">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live Analysis</span>
               </div>
-              
               {faceStatus === 'Missing' && (
                 <div className="absolute inset-0 bg-destructive/20 flex flex-col items-center justify-center backdrop-blur-[1px] p-4 text-center">
                   <AlertCircle className="w-10 h-10 text-white animate-pulse mb-2" />
                   <p className="text-[10px] font-black text-white uppercase tracking-widest">Face Not Detected</p>
-                  <p className="text-[8px] text-white/80 mt-1">Please return to the assessment window</p>
                 </div>
               )}
-
               {faceStatus === 'Multiple' && (
                 <div className="absolute inset-0 bg-destructive/40 flex flex-col items-center justify-center backdrop-blur-[1px] p-4 text-center">
                   <Users className="w-10 h-10 text-white animate-bounce mb-2" />
-                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Collaboration Detected</p>
-                  <p className="text-[8px] text-white/80 mt-1">Only one person allowed in frame</p>
+                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Collaboration Alert</p>
                 </div>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Integrity Load</p>
-                <p className="text-xl font-headline font-bold text-slate-900">{Math.min(100, integrityPoints)}%</p>
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Honesty Check</p>
+                <p className="text-xl font-headline font-bold text-slate-900">{Math.min(100, 100 - integrityPoints)}%</p>
               </div>
               <div className="space-y-1">
-                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Level</p>
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Status</p>
                 <p className={cn(
                   "text-sm font-bold uppercase",
-                  riskScore === 'Normal' ? 'text-green-600' : 
-                  riskScore === 'Suspicious' ? 'text-yellow-600' : 'text-destructive'
+                  riskScore === 'Normal' ? 'text-green-600' : 'text-destructive'
                 )}>{riskScore}</p>
               </div>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                <span className={warningCount >= 2 ? "text-destructive" : ""}>Warning Threshold</span>
+                <span className={warningCount >= 2 ? "text-destructive" : ""}>Warnings</span>
                 <span className={warningCount >= 2 ? "text-destructive font-black" : ""}>{warningCount}/3</span>
               </div>
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
                 <div 
-                  className={cn(
-                    "h-full transition-all duration-500",
-                    warningCount === 0 ? "bg-primary" :
-                    warningCount === 1 ? "bg-yellow-500" : "bg-destructive"
-                  )}
+                  className={cn("h-full transition-all duration-500", warningCount >= 2 ? "bg-destructive" : "bg-primary")}
                   style={{ width: `${(warningCount / 3) * 100}%` }}
                 />
               </div>
-              {warningCount >= 2 && (
-                <p className="text-[8px] text-destructive font-bold uppercase animate-pulse">
-                  CRITICAL: Final warning before session termination
-                </p>
-              )}
             </div>
           </div>
         </CardContent>
