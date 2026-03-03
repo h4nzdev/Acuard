@@ -18,7 +18,8 @@ import {
   Copy,
   CheckCircle2,
   ListTodo,
-  Type
+  Type,
+  AlignLeft
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -58,7 +59,8 @@ export default function NewAssessment() {
       allowCopyPaste: false,
       correctAnswer: "",
       choices: ["", "", "", ""],
-      choiceType: 'True/False'
+      choiceType: 'True/False',
+      minWords: 0
     }
     setQuestions([...questions, newQuestion])
   }
@@ -71,6 +73,10 @@ export default function NewAssessment() {
         if (updated.type === 'Multiple Choice' && !updated.choices) {
           updated.choices = ["", "", "", ""]
           updated.choiceType = updated.choiceType || 'True/False'
+        }
+        // If switching to Essay, ensure minWords is set
+        if (updated.type === 'Essay' && updated.minWords === undefined) {
+          updated.minWords = 100
         }
         return updated
       }
@@ -109,7 +115,8 @@ export default function NewAssessment() {
           points: q.points,
           type: 'Questionnaire' as const,
           allowCopyPaste: false,
-          correctAnswer: ""
+          correctAnswer: "",
+          minWords: 0
         }))
         setQuestions([...questions, ...ocrQuestions])
         toast({
@@ -265,7 +272,7 @@ export default function NewAssessment() {
                     <Shield className="w-5 h-5 text-primary" />
                     <CardTitle className="font-headline">Integrity & Policy Control</CardTitle>
                   </div>
-                  <CardDescription>Define how AcademiaGuard monitors this activity.</CardDescription>
+                  <CardDescription>Define how Acuard monitors this activity.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                   <div className="space-y-4">
@@ -346,7 +353,7 @@ export default function NewAssessment() {
                   <h3 className="text-lg font-headline font-bold">Proctor Summary</h3>
                 </div>
                 <p className="text-sm leading-relaxed mb-6">
-                  AcademiaGuard will automatically flag behavior that deviates significantly from a student's baseline.
+                  Acuard will automatically flag behavior that deviates significantly from a student's baseline.
                 </p>
                 <div className="space-y-3">
                   <div className="flex justify-between text-xs font-medium border-b border-white/20 pb-2">
@@ -443,6 +450,28 @@ export default function NewAssessment() {
                                 Options will be fixed as "True" and "False".
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {q.type === 'Essay' && (
+                          <div className="space-y-4 p-4 bg-accent/5 rounded-lg border border-accent/10">
+                            <div className="flex items-center gap-3">
+                              <AlignLeft className="w-4 h-4 text-accent" />
+                              <div className="flex-1 space-y-1">
+                                <Label htmlFor={`min-words-${q.id}`} className="text-xs uppercase font-bold text-accent">Minimum Word Count Requirement</Label>
+                                <div className="flex items-center gap-3">
+                                  <Input 
+                                    id={`min-words-${q.id}`}
+                                    type="number" 
+                                    placeholder="e.g. 250"
+                                    value={q.minWords}
+                                    onChange={(e) => handleUpdateQuestion(q.id, { minWords: parseInt(e.target.value) || 0 })}
+                                    className="h-9 w-32 bg-white"
+                                  />
+                                  <span className="text-xs text-muted-foreground italic">Students must reach this length to pass the submission gate.</span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         )}
 

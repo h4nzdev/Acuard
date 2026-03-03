@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo, CheckCircle2, Trophy } from "lucide-react"
+import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo, CheckCircle2, Trophy, AlignLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -104,7 +104,25 @@ export default function ActiveAssessment() {
     router.push('/student/assessments')
   }
 
+  const getWordCount = (text: string) => {
+    return text.trim() === "" ? 0 : text.trim().split(/\s+/).length
+  }
+
   const handleSubmit = () => {
+    // Validate word counts for essays
+    const invalidEssay = assessment.questions?.find(q => 
+      q.type === 'Essay' && q.minWords && getWordCount(answers[q.id] || "") < q.minWords
+    )
+
+    if (invalidEssay) {
+      toast({
+        title: "Requirement Not Met",
+        description: `Essay question requires at least ${invalidEssay.minWords} words.`,
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsSubmitting(true)
     
     let earned = 0
@@ -276,70 +294,96 @@ export default function ActiveAssessment() {
         )}
 
         {assessment.questions && assessment.questions.length > 0 ? (
-          assessment.questions.map((q, index) => (
-            <Card key={q.id} className="shadow-lg border-none ring-1 ring-slate-200 overflow-hidden">
-              <div className="h-1 bg-primary/20" />
-              <CardHeader>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Question {index + 1}</span>
-                  <Badge variant="secondary" className="text-[10px] font-bold uppercase">{q.points} Points</Badge>
-                </div>
-                <CardTitle className="text-lg font-headline font-bold text-slate-800 leading-snug">
-                  {q.text}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {q.type === 'Multiple Choice' ? (
-                  <RadioGroup 
-                    value={answers[q.id] || ""} 
-                    onValueChange={(val) => handleUpdateAnswer(q.id, val)}
-                    className="space-y-3"
-                  >
-                    {q.choiceType === 'True/False' ? (
-                      <>
-                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
-                          <RadioGroupItem value="True" id={`q-${q.id}-choice-true`} />
-                          <Label htmlFor={`q-${q.id}-choice-true`} className="flex-1 font-medium cursor-pointer">True</Label>
-                        </div>
-                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
-                          <RadioGroupItem value="False" id={`q-${q.id}-choice-false`} />
-                          <Label htmlFor={`q-${q.id}-choice-false`} className="flex-1 font-medium cursor-pointer">False</Label>
-                        </div>
-                      </>
-                    ) : (
-                      (q.choices || ["", "", "", ""]).map((choice, idx) => {
-                        const choiceLabel = String.fromCharCode(65 + idx)
-                        return (
-                          <div key={idx} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
-                            <RadioGroupItem value={choice} id={`q-${q.id}-choice-${idx}`} disabled={!choice} />
-                            <Label htmlFor={`q-${q.id}-choice-${idx}`} className="flex-1 font-medium cursor-pointer">
-                              <span className="text-primary mr-2 font-bold">{choiceLabel}.</span>
-                              {choice}
-                            </Label>
+          assessment.questions.map((q, index) => {
+            const wordCount = q.type === 'Essay' ? getWordCount(answers[q.id] || "") : 0
+            const meetsRequirement = q.minWords ? wordCount >= q.minWords : true
+
+            return (
+              <Card key={q.id} className="shadow-lg border-none ring-1 ring-slate-200 overflow-hidden">
+                <div className="h-1 bg-primary/20" />
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Question {index + 1}</span>
+                    <Badge variant="secondary" className="text-[10px] font-bold uppercase">{q.points} Points</Badge>
+                  </div>
+                  <CardTitle className="text-lg font-headline font-bold text-slate-800 leading-snug">
+                    {q.text}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {q.type === 'Multiple Choice' ? (
+                    <RadioGroup 
+                      value={answers[q.id] || ""} 
+                      onValueChange={(val) => handleUpdateAnswer(q.id, val)}
+                      className="space-y-3"
+                    >
+                      {q.choiceType === 'True/False' ? (
+                        <>
+                          <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                            <RadioGroupItem value="True" id={`q-${q.id}-choice-true`} />
+                            <Label htmlFor={`q-${q.id}-choice-true`} className="flex-1 font-medium cursor-pointer">True</Label>
                           </div>
-                        )
-                      })
-                    )}
-                  </RadioGroup>
-                ) : (
-                  <Textarea 
-                    placeholder="Enter your response here..."
-                    className="min-h-[200px] text-base leading-relaxed focus-visible:ring-accent"
-                    value={answers[q.id] || ""}
-                    onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                    onContextMenu={(e) => !q.allowCopyPaste && e.preventDefault()}
-                    onPaste={(e) => !q.allowCopyPaste && e.preventDefault()}
-                  />
-                )}
-                
-                {!q.allowCopyPaste && q.type !== 'Multiple Choice' && (
-                  <p className="text-[10px] text-destructive font-black uppercase mt-3 flex items-center gap-1.5">
-                    <AlertCircle className="w-3 h-3" /> Copy-Paste is strictly disabled for this item.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))
+                          <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                            <RadioGroupItem value="False" id={`q-${q.id}-choice-false`} />
+                            <Label htmlFor={`q-${q.id}-choice-false`} className="flex-1 font-medium cursor-pointer">False</Label>
+                          </div>
+                        </>
+                      ) : (
+                        (q.choices || ["", "", "", ""]).map((choice, idx) => {
+                          const choiceLabel = String.fromCharCode(65 + idx)
+                          return (
+                            <div key={idx} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-slate-50 transition-colors">
+                              <RadioGroupItem value={choice} id={`q-${q.id}-choice-${idx}`} disabled={!choice} />
+                              <Label htmlFor={`q-${q.id}-choice-${idx}`} className="flex-1 font-medium cursor-pointer">
+                                <span className="text-primary mr-2 font-bold">{choiceLabel}.</span>
+                                {choice}
+                              </Label>
+                            </div>
+                          )
+                        })
+                      )}
+                    </RadioGroup>
+                  ) : (
+                    <div className="space-y-3">
+                      <Textarea 
+                        placeholder="Enter your response here..."
+                        className="min-h-[250px] text-base leading-relaxed focus-visible:ring-accent"
+                        value={answers[q.id] || ""}
+                        onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                        onContextMenu={(e) => !q.allowCopyPaste && e.preventDefault()}
+                        onPaste={(e) => !q.allowCopyPaste && e.preventDefault()}
+                      />
+                      
+                      {q.type === 'Essay' && q.minWords && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <AlignLeft className="w-4 h-4 text-muted-foreground" />
+                            <span className={cn(
+                              "text-xs font-bold",
+                              meetsRequirement ? "text-green-600" : "text-muted-foreground"
+                            )}>
+                              {wordCount} / {q.minWords} words
+                            </span>
+                          </div>
+                          {!meetsRequirement && (
+                            <span className="text-[10px] text-destructive font-bold uppercase tracking-tight flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Minimum not met
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!q.allowCopyPaste && q.type !== 'Multiple Choice' && (
+                    <p className="text-[10px] text-destructive font-black uppercase mt-3 flex items-center gap-1.5">
+                      <AlertCircle className="w-3 h-3" /> Copy-Paste is strictly disabled for this item.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
         ) : (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed">
             <p className="text-muted-foreground italic">No questions found in this assessment.</p>

@@ -17,6 +17,7 @@ export interface Question {
   correctAnswer: string;
   choices?: string[];
   choiceType?: 'True/False' | 'Custom';
+  minWords?: number; // New field for Essay length requirements
 }
 
 export interface Assessment {

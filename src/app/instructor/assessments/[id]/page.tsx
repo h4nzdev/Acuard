@@ -14,7 +14,8 @@ import {
   Type,
   AlertCircle,
   CheckCircle2,
-  ListTodo
+  ListTodo,
+  AlignLeft
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -178,6 +179,16 @@ export default function AssessmentDetails() {
                               {q.choiceType === 'Custom' ? choice : `Option ${String.fromCharCode(65 + cIdx)}`}
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {q.type === 'Essay' && q.minWords && (
+                        <div className="p-4 bg-accent/5 rounded-lg border border-accent/10 flex items-center gap-3">
+                          <AlignLeft className="w-4 h-4 text-accent" />
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-accent tracking-widest block mb-0.5">Length Requirement</span>
+                            <p className="text-sm text-accent font-bold">Minimum {q.minWords} words required.</p>
+                          </div>
                         </div>
                       )}
 
