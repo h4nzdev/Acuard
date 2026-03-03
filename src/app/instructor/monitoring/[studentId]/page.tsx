@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -55,22 +56,22 @@ export default function StudentSessionAnalytics() {
     // Calculate Variances
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
     const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
-    const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0)) / (base.vocabComplexity || 1);
+    const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0));
     
-    // Calculate Match Percentage (Heuristic)
+    // Calculate Match Percentage (Real Algorithm)
     let matchScore = 100;
     matchScore -= (wpmVariance * 50); 
     matchScore -= (syntacticVariance * 40);
-    matchScore -= (vocabVariance * 30);
+    matchScore -= (vocabVariance * 15);
     matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 5);
     matchScore -= (session.warningCount * 15);
 
-    // If gibberish was typed (very low complexity), force a severe match drop
-    if ((curr.vocabComplexity || 0) < 2 && base.vocabComplexity > 4) {
+    // Severe mismatch detection
+    if ((curr.vocabComplexity < 3 && base.vocabComplexity > 5) || (curr.vocabComplexity > 5 && base.vocabComplexity < 3)) {
       matchScore -= 60;
     }
 
-    const finalMatch = Math.max(5, Math.min(98, Math.round(matchScore)));
+    const finalMatch = Math.max(0, Math.min(100, Math.round(matchScore)));
 
     return {
       matchPercentage: finalMatch,
@@ -96,8 +97,7 @@ export default function StudentSessionAnalytics() {
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
   
-  // Dynamic percentage or severe penalty if high risk and no analytics
-  const styleMatchPercentage = analytics?.matchPercentage ?? (session.riskScore === 'Normal' ? 96 : 15)
+  const styleMatchPercentage = analytics?.matchPercentage ?? (session.riskScore === 'Normal' ? 96 : 5)
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -258,6 +258,15 @@ export default function StudentSessionAnalytics() {
                   <p className="text-sm font-bold text-slate-800">Human Ownership Probability</p>
                   <p className="text-xs text-muted-foreground">Compared to unique writing fingerprint</p>
                 </div>
+
+                {styleMatchPercentage < 30 && (
+                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl animate-pulse">
+                    <p className="text-destructive font-black text-xs uppercase tracking-tighter text-center flex flex-col items-center gap-1">
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>IDENTITY ALERT: Is that really them? 🧐</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -65,7 +66,6 @@ export default function AssessmentResultDetails() {
     const base = baseline;
 
     // BIOMETRIC DIFFERENTIAL ALGORITHM
-    // Each dimension has a penalty weight
     let totalScore = 100;
 
     // 1. WPM Variance
@@ -78,7 +78,7 @@ export default function AssessmentResultDetails() {
 
     // 3. Vocab Complexity (Unique word ratio)
     const vocabVariance = Math.abs(curr.vocabComplexity - base.vocabComplexity);
-    if (vocabVariance > 2) totalScore -= (vocabVariance * 10);
+    if (vocabVariance > 2) totalScore -= (vocabVariance * 15);
 
     // 4. Correction Frequency
     const backspaceDiff = Math.abs(curr.backspaceRate - base.backspaceRate);
@@ -88,7 +88,12 @@ export default function AssessmentResultDetails() {
     totalScore -= (session.tabSwitchCount * 15);
     totalScore -= (session.pasteCount * 20);
 
-    const finalMatch = Math.max(5, Math.min(100, Math.round(totalScore)));
+    // If gibberish was in baseline but normal text is here, or vice versa
+    if ((curr.vocabComplexity < 3 && base.vocabComplexity > 5) || (curr.vocabComplexity > 5 && base.vocabComplexity < 3)) {
+      totalScore -= 60;
+    }
+
+    const finalMatch = Math.max(0, Math.min(100, Math.round(totalScore)));
 
     return {
       matchPercentage: finalMatch,
@@ -293,6 +298,15 @@ export default function AssessmentResultDetails() {
                   <p className="text-sm font-bold text-slate-800">Human Ownership Probability</p>
                   <p className="text-xs text-muted-foreground">Differential analysis vs writing signature</p>
                 </div>
+                
+                {matchPercentage < 30 && (
+                  <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl animate-bounce">
+                    <p className="text-destructive font-black text-xs uppercase tracking-tighter text-center flex flex-col items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Wait... is that really you? 🤨</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
