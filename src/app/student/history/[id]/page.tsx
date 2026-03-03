@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
@@ -22,8 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { getSessions, getAssessments } from "@/lib/storage"
-import { StudentSession, Assessment } from "@/app/lib/mock-data"
+import { getSessions, getAssessments, getStudentBaseline } from "@/lib/storage"
+import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 export default function AssessmentResultDetails() {
@@ -31,6 +31,7 @@ export default function AssessmentResultDetails() {
   const router = useRouter()
   const [session, setSession] = useState<StudentSession | null>(null)
   const [assessment, setAssessment] = useState<Assessment | null>(null)
+  const [baseline, setBaseline] = useState<TypingVector | null>(null)
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
@@ -49,10 +50,45 @@ export default function AssessmentResultDetails() {
       const assessments = getAssessments()
       const foundAssessment = assessments.find(a => a.id === foundSession.assessmentId)
       setAssessment(foundAssessment || null)
+      
+      const studentBaseline = getStudentBaseline(user.id)
+      setBaseline(studentBaseline)
     }
 
     setIsMounted(true)
   }, [params.id, router])
+
+  // Behavioral Vector Comparison Logic for the UI
+  const analytics = useMemo(() => {
+    if (!session || !baseline || !session.currentVector) return null;
+
+    const curr = session.currentVector;
+    const base = baseline;
+
+    // Calculate Variances
+    const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
+    const rhythmVariance = Math.abs((curr.consistency || 0) - (base.consistency || 0));
+    const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
+    
+    // Calculate Match Percentage (Heuristic)
+    // 100% - Weighted penalties for deviations
+    let matchScore = 100;
+    matchScore -= (wpmVariance * 40); // WPM diff is a major factor
+    matchScore -= (syntacticVariance * 30); // Style diff is major
+    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 2); // Correction diff
+    
+    // Impact of suspicious behaviors
+    matchScore -= (session.warningCount * 10);
+
+    const finalMatch = Math.max(5, Math.min(98, Math.round(matchScore)));
+
+    return {
+      matchPercentage: finalMatch,
+      rhythmVariance: (wpmVariance * 100).toFixed(1),
+      syntacticVariance: (syntacticVariance * 100).toFixed(1),
+      isAnalyzable: true
+    };
+  }, [session, baseline]);
 
   if (!isMounted) return null
 
@@ -71,11 +107,8 @@ export default function AssessmentResultDetails() {
     ? Math.round((session.score / session.totalPossiblePoints) * 100)
     : 0
 
-  // Check if writing style analysis is applicable (contains text-based questions including Essays)
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-
-  // Mock match percentage based on risk level
-  const styleMatchPercentage = session.riskScore === 'Normal' ? 96 : session.riskScore === 'Suspicious' ? 54 : 18
+  const styleMatchPercentage = analytics?.matchPercentage || (session.riskScore === 'Normal' ? 96 : 45)
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
@@ -189,13 +222,13 @@ export default function AssessmentResultDetails() {
                     <div className="flex justify-between text-xs font-medium">
                       <span>Keystroke Rhythm</span>
                       <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
-                        {session.riskScore === 'Normal' ? '< 4%' : '> 22%'}
+                        {analytics ? `< ${analytics.rhythmVariance}%` : (session.riskScore === 'Normal' ? '< 4%' : '> 22%')}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                       <span>Syntactic Density</span>
                       <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
-                        {session.riskScore === 'Normal' ? '< 2%' : '> 15%'}
+                        {analytics ? `< ${analytics.syntacticVariance}%` : (session.riskScore === 'Normal' ? '< 2%' : '> 15%')}
                       </span>
                     </div>
                   </div>
