@@ -64,6 +64,11 @@ export async function studentWritingFingerprintBaseline(
   if (input.apiKey) {
     process.env.GOOGLE_GENAI_API_KEY = input.apiKey;
   }
+
+  if (!process.env.GOOGLE_GENAI_API_KEY) {
+    throw new Error('Gemini API Key is missing. Please set it in Instructor -> Policies.');
+  }
+
   return studentWritingFingerprintBaselineFlow(input);
 }
 
