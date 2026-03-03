@@ -18,7 +18,8 @@ import {
   Upload,
   Image as ImageIcon,
   X,
-  FileCheck
+  FileCheck,
+  User as UserIcon
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { getStudents, saveStudent, deleteStudent } from "@/lib/storage"
 import { Student } from "@/app/lib/mock-data"
@@ -80,7 +82,7 @@ export default function StudentManagement() {
     if (!newName || !newEmail || !newPassword) {
       toast({
         title: "Error",
-        description: "Please fill in all fields including the password.",
+        description: "Please fill in all identity fields including the password.",
         variant: "destructive"
       })
       return
@@ -142,13 +144,23 @@ export default function StudentManagement() {
               Add Student
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">Add New Student</DialogTitle>
-              <DialogDescription>Enter the details below to enroll a student into the platform.</DialogDescription>
+              <DialogDescription>Configure details and verification for the new student.</DialogDescription>
             </DialogHeader>
-            <div className="grid md:grid-cols-2 gap-8 py-4">
-              <div className="space-y-4">
+            
+            <Tabs defaultValue="identity" className="py-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="identity" className="gap-2">
+                  <UserIcon className="w-3.5 h-3.5" /> Identity
+                </TabsTrigger>
+                <TabsTrigger value="verification" className="gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verification
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="identity" className="space-y-4 pt-4 animate-in fade-in slide-in-from-left-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. John Doe" />
@@ -171,10 +183,10 @@ export default function StudentManagement() {
                     />
                   </div>
                 </div>
-              </div>
+              </TabsContent>
 
-              <div className="space-y-4">
-                <Label>Student ID Verification</Label>
+              <TabsContent value="verification" className="space-y-4 pt-4 animate-in fade-in slide-in-from-right-2">
+                <Label>Student ID Photo</Label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
                   onDragOver={(e) => e.preventDefault()}
@@ -188,7 +200,7 @@ export default function StudentManagement() {
                     }
                   }}
                   className={cn(
-                    "relative border-2 border-dashed rounded-xl h-48 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group",
+                    "relative border-2 border-dashed rounded-xl h-56 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 group",
                     idPhoto ? "border-green-200 bg-green-50/30" : "border-slate-200 hover:border-primary/50 hover:bg-slate-50"
                   )}
                 >
@@ -221,9 +233,9 @@ export default function StudentManagement() {
                       <div className="p-3 bg-slate-100 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                         <Upload className="w-6 h-6 text-slate-400 group-hover:text-primary" />
                       </div>
-                      <div className="text-center mt-3">
+                      <div className="text-center mt-3 px-4">
                         <p className="text-sm font-bold text-slate-700">Upload Student ID</p>
-                        <p className="text-[10px] text-muted-foreground mt-1 px-4 leading-tight">Drag and drop or click to upload<br />(JPG, PNG)</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">Drag and drop or click to upload<br />(JPG, PNG)</p>
                       </div>
                     </>
                   )}
@@ -236,16 +248,19 @@ export default function StudentManagement() {
                   />
                 </div>
                 <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-                  <p className="text-[10px] text-muted-foreground leading-tight italic">
-                    The ID photo will be used by the proctoring engine to verify student identity during assessments.
+                  <p className="text-[10px] text-muted-foreground leading-tight italic text-center">
+                    The ID photo will be used to verify student identity during monitored assessments.
                   </p>
                 </div>
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddStudent} className="bg-primary hover:bg-primary/90 font-bold px-8 shadow-md">
-                Add Student
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="gap-2 sm:gap-0 sm:flex-col mt-2">
+              <Button onClick={handleAddStudent} className="w-full bg-primary hover:bg-primary/90 font-bold shadow-md h-11">
+                Enroll Student
+              </Button>
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="w-full mt-2">
+                Cancel
               </Button>
             </DialogFooter>
           </DialogContent>
