@@ -139,16 +139,23 @@ export function MonitoringEngine({
   }, [integrityPoints])
 
   const triggerPenalty = (points: number, msg: string) => {
+    // ALWAYS Toast the violation so the student knows they were caught
+    toast({
+      title: "Integrity Violation",
+      description: msg,
+      variant: "destructive"
+    })
+
     setIntegrityPoints(prevPoints => {
       const newTotal = prevPoints + points
-      const nextWarning = Math.floor(newTotal / 30)
+      const nextWarning = Math.min(3, Math.floor(newTotal / 30))
       
       setWarningCount(prevWarning => {
         if (nextWarning > prevWarning) {
           onWarning(nextWarning)
           toast({
-            title: "Integrity Flag",
-            description: `${msg}. Warning ${nextWarning}/3`,
+            title: "Warning Issued",
+            description: `Warning threshold crossed: ${nextWarning}/3`,
             variant: "destructive"
           })
           return nextWarning
@@ -281,8 +288,8 @@ export function MonitoringEngine({
           if (predictions.length === 0) {
             setFaceStatus("Missing")
             faceMissingCount.current++
-            if (faceMissingCount.current >= 30) { // Approx 15 seconds
-              triggerPenalty(10, "Focus on the screen! Face not detected.")
+            if (faceMissingCount.current >= 30) { // Approx 15 seconds at 500ms intervals
+              triggerPenalty(15, "Focus on the screen! Face not detected.")
               faceMissingCount.current = 0 
             }
           } else if (predictions.length > 1) {
@@ -294,7 +301,6 @@ export function MonitoringEngine({
               const rawEnd = prediction.bottomRight as [number, number]
               const size = [rawEnd[0] - rawStart[0], rawEnd[1] - rawStart[1]]
               
-              // Mirror coordinates for flipped video
               const mirroredX = canvas.width - rawEnd[0]
               
               ctx.strokeStyle = '#ef4444'
@@ -307,7 +313,7 @@ export function MonitoringEngine({
             })
 
             if (multiFaceCount.current >= 10) { // Approx 5 seconds
-              triggerPenalty(30, "Collaboration detected! Multiple faces identified in frame.")
+              triggerPenalty(30, "Collaboration detected! Multiple faces identified.")
               multiFaceCount.current = 0
             }
           } else {
@@ -320,7 +326,6 @@ export function MonitoringEngine({
             const rawEnd = prediction.bottomRight as [number, number]
             const size = [rawEnd[0] - rawStart[0], rawEnd[1] - rawStart[1]]
 
-            // Mirror coordinates for flipped video
             const mirroredX = canvas.width - rawEnd[0]
 
             ctx.strokeStyle = '#22c55e'
