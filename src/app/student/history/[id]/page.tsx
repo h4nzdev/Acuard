@@ -6,6 +6,7 @@ import {
   ArrowLeft, 
   Trophy, 
   ShieldCheck, 
+  ShieldAlert,
   AlertTriangle, 
   Clock, 
   Activity, 
