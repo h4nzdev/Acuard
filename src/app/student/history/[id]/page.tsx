@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -23,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { getSessions, getAssessments, getStudentBaseline } from "@/lib/storage"
 import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
@@ -334,28 +336,30 @@ export default function AssessmentResultDetails() {
         </div>
 
         <div className="space-y-6">
-          <Card className="shadow-lg border-none ring-1 ring-slate-200 bg-primary/[0.02]">
+          <Card className="shadow-lg border-none ring-1 ring-slate-200 bg-primary/[0.02] overflow-hidden">
             <CardHeader>
               <CardTitle className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" />
                 Audit Timeline
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                {session.violations && session.violations.length > 0 ? (
-                  session.violations.map((v, i) => (
-                    <div key={i} className="flex gap-3 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                      <span className="text-xs text-slate-600 leading-tight">{v}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground italic bg-green-50 p-3 rounded-lg border border-green-100">
-                    No policy violations recorded.
-                  </p>
-                )}
-              </div>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[450px] p-6 pt-0">
+                <div className="space-y-4">
+                  {session.violations && session.violations.length > 0 ? (
+                    session.violations.map((v, i) => (
+                      <div key={i} className="flex gap-3 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
+                        <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
+                        <span className="text-xs text-slate-600 leading-tight">{v}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic bg-green-50 p-3 rounded-lg border border-green-100">
+                      No policy violations recorded.
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { getSessions, getAssessments, getStudentBaseline } from "@/lib/storage"
 import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
@@ -329,21 +331,23 @@ export default function StudentSessionAnalytics() {
                 <ShieldAlert className="w-4 h-4 text-destructive" />
                 Incident Timeline
               </h4>
-              <div className="space-y-4">
-                {session.violations && session.violations.length > 0 ? (
-                  session.violations.map((v, i) => (
-                    <div key={i} className="flex gap-4 items-start">
-                      <div className="w-2 h-2 rounded-full bg-destructive mt-1.5 shrink-0" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold">{v}</p>
-                        <p className="text-xs text-muted-foreground">Logged at {session.lastActive}</p>
+              <ScrollArea className="h-[300px] pr-4">
+                <div className="space-y-4">
+                  {session.violations && session.violations.length > 0 ? (
+                    session.violations.map((v, i) => (
+                      <div key={i} className="flex gap-4 items-start">
+                        <div className="w-2 h-2 rounded-full bg-destructive mt-1.5 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold">{v}</p>
+                          <p className="text-xs text-muted-foreground">Logged at {session.lastActive}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No specific violations logged yet.</p>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">No specific violations logged yet.</p>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
           </CardContent>
         </Card>
