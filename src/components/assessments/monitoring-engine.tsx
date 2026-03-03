@@ -290,17 +290,20 @@ export function MonitoringEngine({
             multiFaceCount.current++
             
             predictions.forEach((prediction: any) => {
-              const start = prediction.topLeft as [number, number]
-              const end = prediction.bottomRight as [number, number]
-              const size = [end[0] - start[0], end[1] - start[1]]
+              const rawStart = prediction.topLeft as [number, number]
+              const rawEnd = prediction.bottomRight as [number, number]
+              const size = [rawEnd[0] - rawStart[0], rawEnd[1] - rawStart[1]]
+              
+              // Mirror coordinates for flipped video
+              const mirroredX = canvas.width - rawEnd[0]
               
               ctx.strokeStyle = '#ef4444'
               ctx.lineWidth = 4
-              ctx.strokeRect(start[0], start[1], size[0], size[1])
+              ctx.strokeRect(mirroredX, rawStart[1], size[0], size[1])
               
               ctx.fillStyle = '#ef4444'
               ctx.font = 'bold 14px Inter'
-              ctx.fillText('UNAUTHORIZED', start[0], start[1] - 10)
+              ctx.fillText('UNAUTHORIZED', mirroredX, rawStart[1] - 10)
             })
 
             if (multiFaceCount.current >= 10) { // Approx 5 seconds
@@ -313,19 +316,22 @@ export function MonitoringEngine({
             multiFaceCount.current = 0
 
             const prediction = predictions[0] as any
-            const start = prediction.topLeft as [number, number]
-            const end = prediction.bottomRight as [number, number]
-            const size = [end[0] - start[0], end[1] - start[1]]
+            const rawStart = prediction.topLeft as [number, number]
+            const rawEnd = prediction.bottomRight as [number, number]
+            const size = [rawEnd[0] - rawStart[0], rawEnd[1] - rawStart[1]]
+
+            // Mirror coordinates for flipped video
+            const mirroredX = canvas.width - rawEnd[0]
 
             ctx.strokeStyle = '#22c55e'
             ctx.lineWidth = 3
             ctx.setLineDash([10, 5])
-            ctx.strokeRect(start[0], start[1], size[0], size[1])
+            ctx.strokeRect(mirroredX, rawStart[1], size[0], size[1])
             ctx.setLineDash([])
             
             ctx.fillStyle = '#22c55e'
             ctx.font = 'bold 16px Inter'
-            ctx.fillText('IDENTIFIED', start[0], start[1] - 10)
+            ctx.fillText('IDENTIFIED', mirroredX, rawStart[1] - 10)
           }
         } catch (err) {
           console.error("CV Loop Error:", err)
@@ -382,7 +388,7 @@ export function MonitoringEngine({
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden border shadow-inner">
               <video 
                 ref={videoRef} 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover -scale-x-100" 
                 autoPlay 
                 muted 
                 playsInline
