@@ -15,7 +15,8 @@ import {
   AlertCircle,
   CheckCircle2,
   ListTodo,
-  AlignLeft
+  AlignLeft,
+  Users
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -77,12 +78,20 @@ export default function AssessmentDetails() {
             </div>
           </div>
         </div>
-        <Button asChild className="gap-2 bg-primary">
-          <Link href={`/instructor/assessments/${assessment.id}/edit`}>
-            <Edit className="w-4 h-4" />
-            Edit Assessment
-          </Link>
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" asChild className="gap-2 border-primary text-primary hover:bg-primary/5 font-bold">
+            <Link href={`/instructor/assessments/${assessment.id}/students`}>
+              <Users className="w-4 h-4" />
+              View Submissions
+            </Link>
+          </Button>
+          <Button asChild className="gap-2 bg-primary">
+            <Link href={`/instructor/assessments/${assessment.id}/edit`}>
+              <Edit className="w-4 h-4" />
+              Edit Assessment
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
