@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
@@ -20,8 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { getSessions, getAssessments } from "@/lib/storage"
-import { StudentSession, Assessment } from "@/app/lib/mock-data"
+import { getSessions, getAssessments, getStudentBaseline } from "@/lib/storage"
+import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 export default function StudentSessionAnalytics() {
@@ -29,6 +29,7 @@ export default function StudentSessionAnalytics() {
   const router = useRouter()
   const [session, setSession] = useState<StudentSession | null>(null)
   const [assessment, setAssessment] = useState<Assessment | null>(null)
+  const [baseline, setBaseline] = useState<TypingVector | null>(null)
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
@@ -39,9 +40,38 @@ export default function StudentSessionAnalytics() {
       const assessments = getAssessments()
       const foundAssessment = assessments.find(a => a.id === found.assessmentId)
       setAssessment(foundAssessment || null)
+      
+      const studentBaseline = getStudentBaseline(params.studentId as string)
+      setBaseline(studentBaseline)
     }
     setIsMounted(true)
   }, [params.studentId])
+
+  const analytics = useMemo(() => {
+    if (!session || !baseline || !session.currentVector) return null;
+
+    const curr = session.currentVector;
+    const base = baseline;
+
+    // Calculate Variances
+    const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
+    const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
+    
+    // Calculate Match Percentage (Heuristic)
+    let matchScore = 100;
+    matchScore -= (wpmVariance * 40); 
+    matchScore -= (syntacticVariance * 30);
+    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 2);
+    matchScore -= (session.warningCount * 10);
+
+    const finalMatch = Math.max(5, Math.min(98, Math.round(matchScore)));
+
+    return {
+      matchPercentage: finalMatch,
+      rhythmVariance: (wpmVariance * 100).toFixed(1),
+      syntacticVariance: (syntacticVariance * 100).toFixed(1),
+    };
+  }, [session, baseline]);
 
   if (!isMounted) return null
 
@@ -59,7 +89,7 @@ export default function StudentSessionAnalytics() {
   }
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-  const styleMatchPercentage = session.riskScore === 'Normal' ? 96 : session.riskScore === 'Suspicious' ? 54 : 18
+  const styleMatchPercentage = analytics?.matchPercentage || (session.riskScore === 'Normal' ? 96 : session.riskScore === 'Suspicious' ? 54 : 18)
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -161,14 +191,14 @@ export default function StudentSessionAnalytics() {
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                       <span>Keystroke Rhythm</span>
-                      <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
-                        {session.riskScore === 'Normal' ? '< 4%' : '> 22%'}
+                      <span className={cn("font-bold", (analytics ? parseFloat(analytics.rhythmVariance) < 5 : session.riskScore === 'Normal') ? "text-green-600" : "text-destructive")}>
+                        {analytics ? `${analytics.rhythmVariance}%` : (session.riskScore === 'Normal' ? '< 4%' : '> 22%')}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                       <span>Syntactic Density</span>
-                      <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
-                        {session.riskScore === 'Normal' ? '< 2%' : '> 15%'}
+                      <span className={cn("font-bold", (analytics ? parseFloat(analytics.syntacticVariance) < 5 : session.riskScore === 'Normal') ? "text-green-600" : "text-destructive")}>
+                        {analytics ? `${analytics.syntacticVariance}%` : (session.riskScore === 'Normal' ? '< 2%' : '> 15%')}
                       </span>
                     </div>
                   </div>
