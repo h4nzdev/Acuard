@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ShieldAlert, BookOpen, Fingerprint, BarChart3, Lock } from "lucide-react"
+import { BookOpen, Fingerprint, BarChart3, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function Home() {
@@ -8,7 +8,7 @@ export default function Home() {
       <header className="border-b bg-white/50 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-8 h-8 text-primary" />
+            <img src="/logo.png" alt="Acuard Logo" className="w-10 h-10 object-contain" />
             <span className="text-2xl font-headline font-bold text-primary">Acuard</span>
           </div>
           <div className="flex gap-4">

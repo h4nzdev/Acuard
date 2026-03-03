@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ShieldAlert, User, GraduationCap, Mail, Lock, Loader2 } from "lucide-react"
+import { User, GraduationCap, Mail, Lock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -84,8 +84,8 @@ function LoginForm() {
       <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-slate-200">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <ShieldAlert className="w-10 h-10 text-primary" />
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img src="/logo.png" alt="Acuard Logo" className="w-full h-full object-contain" />
             </div>
           </div>
           <CardTitle className="text-3xl font-headline font-bold text-slate-900">Acuard</CardTitle>

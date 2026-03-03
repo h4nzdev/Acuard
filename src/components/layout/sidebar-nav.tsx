@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { 
   LayoutDashboard, 
-  ShieldAlert, 
   Settings, 
   PenTool, 
   User, 
@@ -92,11 +91,11 @@ export function SidebarNav({ role }: SidebarNavProps) {
             )}>
               {isExpanded ? (
                 <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
-                  <ShieldAlert className="w-8 h-8 text-accent shrink-0" />
+                  <img src="/logo.png" alt="Acuard Logo" className="w-8 h-8 shrink-0 object-contain" />
                   <h1 className="text-xl font-headline font-bold tracking-tight">Acuard</h1>
                 </div>
               ) : (
-                <ShieldAlert className="w-8 h-8 text-accent" />
+                <img src="/logo.png" alt="Acuard Logo" className="w-8 h-8 object-contain" />
               )}
               
               {isExpanded && (
