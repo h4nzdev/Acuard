@@ -28,6 +28,7 @@ export interface Student {
   totalAssessments: number;
   flaggedSessions: number;
   honestStreak: number;
+  idPhotoUrl?: string;
 }
 
 export interface StudentSession {
