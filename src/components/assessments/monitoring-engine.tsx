@@ -22,6 +22,27 @@ interface MonitoringEngineProps {
   durationMinutes?: number
 }
 
+// Utility to play a short warning beep using Web Audio API
+const playBeep = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (e) {
+    // Audio might be blocked by browser policy until interaction
+  }
+};
+
 export function MonitoringEngine({ 
   currentWriting, 
   onRiskUpdate, 
@@ -288,6 +309,12 @@ export function MonitoringEngine({
           if (predictions.length === 0) {
             setFaceStatus("Missing")
             faceMissingCount.current++
+            
+            // Audible alert every 1 second while face is missing
+            if (faceMissingCount.current % 2 === 0) {
+              playBeep();
+            }
+
             if (faceMissingCount.current >= 30) { // Approx 15 seconds at 500ms intervals
               triggerPenalty(15, "Focus on the screen! Face not detected.")
               faceMissingCount.current = 0 
