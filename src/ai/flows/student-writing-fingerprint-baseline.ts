@@ -74,6 +74,7 @@ export async function studentWritingFingerprintBaseline(
 
 const fingerprintPrompt = ai.definePrompt({
   name: 'studentWritingFingerprintBaselinePrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: StudentWritingFingerprintBaselineInputSchema},
   output: {schema: StudentWritingFingerprintBaselineOutputSchema},
   config: {

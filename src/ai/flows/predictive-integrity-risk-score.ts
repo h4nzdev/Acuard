@@ -72,6 +72,7 @@ export async function predictIntegrityRiskScore(
 
 const predictiveIntegrityRiskScorePrompt = ai.definePrompt({
   name: 'predictiveIntegrityRiskScorePrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: PredictiveIntegrityRiskScoreInputSchema },
   output: { schema: PredictiveIntegrityRiskScoreOutputSchema },
   config: {
