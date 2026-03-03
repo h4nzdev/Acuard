@@ -61,6 +61,7 @@ export type StudentWritingFingerprintBaselineOutput = z.infer<
 export async function studentWritingFingerprintBaseline(
   input: StudentWritingFingerprintBaselineInput
 ): Promise<StudentWritingFingerprintBaselineOutput> {
+  // Sync API Keys to process env for Genkit plugin
   if (input.apiKey) {
     process.env.GOOGLE_GENAI_API_KEY = input.apiKey;
     process.env.GOOGLE_API_KEY = input.apiKey;
