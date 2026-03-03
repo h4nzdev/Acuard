@@ -177,6 +177,7 @@ export function MonitoringEngine({
       const sessions = getSessions()
       const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
       if (current) {
+        const violationMsg = `${msg} at ${new Date().toLocaleTimeString()}`;
         updateSession({
           ...current,
           warningCount: nextWarning,
@@ -184,7 +185,7 @@ export function MonitoringEngine({
           tabSwitchCount: tabSwitches.current,
           pasteCount: pasteEvents.current,
           status: nextWarning >= 3 ? 'Locked' : (current.status === 'Completed' ? 'Completed' : 'Flagged'),
-          violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
+          violations: [...(current.violations || []), violationMsg],
           lastActive: new Date().toLocaleTimeString()
         })
       }

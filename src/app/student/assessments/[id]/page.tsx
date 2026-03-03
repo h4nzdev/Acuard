@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -142,6 +143,9 @@ export default function ActiveAssessment() {
     const sentences = writing.split(/[.!?]+/).filter(s => s.trim().length > 0)
     const avgSentenceLen = Math.round(wordCount / (sentences.length || 1))
 
+    const sessions = getSessions()
+    const current = sessions.find(s => s.assessmentId === assessment?.id && s.studentId === studentId)
+
     const finalVector: TypingVector = {
       wpm: currentWpm,
       consistency: 90, 
@@ -149,7 +153,7 @@ export default function ActiveAssessment() {
       pauseCount: 0,
       avgSentenceLength: avgSentenceLen,
       vocabComplexity: complexity,
-      pasteCount: 0 // Will be merged from session
+      pasteCount: current?.pasteCount || 0
     }
 
     let earned = 0
@@ -172,8 +176,6 @@ export default function ActiveAssessment() {
       total = questions.length * 10
     }
 
-    const sessions = getSessions()
-    const current = sessions.find(s => s.assessmentId === assessment?.id && s.studentId === studentId)
     if (current) {
       updateSession({
         ...current,
