@@ -33,6 +33,7 @@ export function MonitoringEngine({
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null)
+  const [stream, setStream] = useState<MediaStream | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [warningCount, setWarningCount] = useState(0)
   const [riskScore, setRiskScore] = useState<string>("Normal")
@@ -42,7 +43,7 @@ export function MonitoringEngine({
   
   // Computer Vision State
   const [faceStatus, setFaceStatus] = useState<"Tracking" | "Missing" | "Multiple" | "Loading">("Loading")
-  const modelRef = useRef<blazeface.BlazeFaceModel | null>(null)
+  const [model, setModel] = useState<blazeface.BlazeFaceModel | null>(null)
   const faceMissingCount = useRef(0)
   const multiFaceCount = useRef(0)
 
@@ -75,9 +76,8 @@ export function MonitoringEngine({
     const loadFaceModel = async () => {
       try {
         await tf.ready()
-        // BlazeFace is lightweight and handles multiple faces well
         const loadedModel = await blazeface.load()
-        modelRef.current = loadedModel
+        setModel(loadedModel)
         setFaceStatus("Tracking")
       } catch (err) {
         console.error("TF Face Model Load Error:", err)
@@ -87,20 +87,33 @@ export function MonitoringEngine({
     loadFaceModel()
   }, [])
 
+  // Camera Permission and Stream Acquisition
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        const s = await navigator.mediaDevices.getUserMedia({ video: true })
         setHasCameraPermission(true)
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-        }
+        setStream(s)
       } catch (error) {
+        console.error("Camera access denied:", error)
         setHasCameraPermission(false)
       }
     }
     getCameraPermission()
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop())
+      }
+    }
   }, [])
+
+  // Attach stream to video when both are ready
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream
+    }
+  }, [stream])
 
   useEffect(() => {
     if (timeLeft <= 0) return
@@ -126,19 +139,22 @@ export function MonitoringEngine({
   }, [integrityPoints])
 
   const triggerPenalty = (points: number, msg: string) => {
-    setIntegrityPoints(prev => {
-      const newTotal = prev + points
+    setIntegrityPoints(prevPoints => {
+      const newTotal = prevPoints + points
       const nextWarning = Math.floor(newTotal / 30)
       
-      if (nextWarning > warningCount) {
-        setWarningCount(nextWarning)
-        onWarning(nextWarning)
-        toast({
-          title: "Integrity Flag",
-          description: `${msg}. Warning ${nextWarning}/3`,
-          variant: "destructive"
-        })
-      }
+      setWarningCount(prevWarning => {
+        if (nextWarning > prevWarning) {
+          onWarning(nextWarning)
+          toast({
+            title: "Integrity Flag",
+            description: `${msg}. Warning ${nextWarning}/3`,
+            variant: "destructive"
+          })
+          return nextWarning
+        }
+        return prevWarning
+      })
 
       const sessions = getSessions()
       const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
@@ -241,9 +257,9 @@ export function MonitoringEngine({
     return () => clearInterval(interval)
   }, [studentId, assessmentId])
 
-  // REAL-TIME COMPUTER VISION LOOP (Enhanced for Multi-Face)
+  // REAL-TIME COMPUTER VISION LOOP
   useEffect(() => {
-    if (!modelRef.current || !hasCameraPermission) return
+    if (!model || !hasCameraPermission) return
 
     const cvLoop = setInterval(async () => {
       if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
@@ -258,7 +274,7 @@ export function MonitoringEngine({
         }
 
         try {
-          const predictions = await modelRef.current!.estimateFaces(video, false)
+          const predictions = await model.estimateFaces(video, false)
           
           ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -273,7 +289,6 @@ export function MonitoringEngine({
             setFaceStatus("Multiple")
             multiFaceCount.current++
             
-            // Draw red boxes for ALL detected faces
             predictions.forEach((prediction: any) => {
               const start = prediction.topLeft as [number, number]
               const end = prediction.bottomRight as [number, number]
@@ -297,7 +312,6 @@ export function MonitoringEngine({
             faceMissingCount.current = 0
             multiFaceCount.current = 0
 
-            // Draw tracking box for single verified user
             const prediction = predictions[0] as any
             const start = prediction.topLeft as [number, number]
             const end = prediction.bottomRight as [number, number]
@@ -320,7 +334,7 @@ export function MonitoringEngine({
     }, 500)
 
     return () => clearInterval(cvLoop)
-  }, [hasCameraPermission])
+  }, [model, hasCameraPermission])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
