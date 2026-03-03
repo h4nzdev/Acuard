@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { getSessions, getAssessments, getStudentBaseline } from "@/lib/storage"
+import { getSessions, getAssessments, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
 import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 
@@ -197,16 +197,37 @@ export default function AssessmentResultDetails() {
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Avg Speed</span>
-              <span className="font-bold">{session.typingSpeed} WPM</span>
+              <span className="font-bold">{session.typingSpeed || session.currentVector?.wpm || 0} WPM</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Tab Switches</span>
-              <span className="font-bold">{session.tabSwitchCount}</span>
+              <span className={cn("font-bold", session.tabSwitchCount && session.tabSwitchCount > 0 ? "text-destructive" : "text-slate-900")}>
+                {session.tabSwitchCount || 0}
+              </span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Paste Events</span>
-              <span className="font-bold">{session.pasteCount}</span>
+              <span className={cn("font-bold", session.pasteCount && session.pasteCount > 0 ? "text-destructive" : "text-slate-900")}>
+                {session.pasteCount || 0}
+              </span>
             </div>
+            {session.currentVector && (
+              <div className="pt-2 border-t mt-2 space-y-2">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter mb-1">Detailed Analytics</p>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Correction Frequency</span>
+                  <span className="font-bold">{session.currentVector.backspaceRate}%</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Syntactic Density</span>
+                  <span className="font-bold">{session.currentVector.avgSentenceLength} Words/Sen</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Vocab Complexity</span>
+                  <span className="font-bold">{session.currentVector.vocabComplexity}/10</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

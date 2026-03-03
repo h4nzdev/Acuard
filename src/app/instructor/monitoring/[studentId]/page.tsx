@@ -14,7 +14,8 @@ import {
   User,
   FileText,
   BarChart3,
-  BrainCircuit
+  BrainCircuit,
+  Focus
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -77,11 +78,6 @@ export default function StudentSessionAnalytics() {
     totalScore -= (session.tabSwitchCount * 15);
     totalScore -= (session.pasteCount * 20);
 
-    // Severe mismatch detection
-    if ((curr.vocabComplexity < 3 && base.vocabComplexity > 5) || (curr.vocabComplexity > 5 && base.vocabComplexity < 3)) {
-      totalScore -= 60;
-    }
-
     const finalMatch = Math.max(0, Math.min(100, Math.round(totalScore)));
 
     return {
@@ -107,7 +103,6 @@ export default function StudentSessionAnalytics() {
   }
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-  
   const styleMatchPercentage = analytics?.matchPercentage ?? 0
 
   return (
@@ -180,8 +175,8 @@ export default function StudentSessionAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-headline font-bold">{session.typingSpeed} <span className="text-sm">WPM</span></div>
-            <p className="text-xs text-muted-foreground mt-2">Comparing against unique baseline</p>
+            <div className="text-4xl font-headline font-bold">{session.typingSpeed || session.currentVector?.wpm || 0} <span className="text-sm">WPM</span></div>
+            <p className="text-xs text-muted-foreground mt-2">Captured during active session</p>
           </CardContent>
         </Card>
       </div>
@@ -303,7 +298,7 @@ export default function StudentSessionAnalytics() {
                     </div>
                     <span className="text-sm font-medium">Paste Frequency</span>
                   </div>
-                  <span className="text-lg font-bold">{session.pasteCount}</span>
+                  <span className={cn("text-lg font-bold", session.pasteCount > 0 ? "text-destructive" : "text-slate-900")}>{session.pasteCount || 0}</span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border">
                   <div className="flex items-center gap-3">
@@ -312,16 +307,36 @@ export default function StudentSessionAnalytics() {
                     </div>
                     <span className="text-sm font-medium">Tab Switches</span>
                   </div>
-                  <span className="text-lg font-bold">{session.tabSwitchCount}</span>
+                  <span className={cn("text-lg font-bold", session.tabSwitchCount > 0 ? "text-destructive" : "text-slate-900")}>{session.tabSwitchCount || 0}</span>
                 </div>
+                {session.currentVector && (
+                  <div className="p-4 bg-primary/[0.03] rounded-xl border border-primary/10 space-y-3">
+                    <p className="text-[10px] font-black uppercase text-primary/60 tracking-widest">Biometric Indicators</p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground font-bold">Correction Rate</span>
+                      <span className="font-bold">{session.currentVector.backspaceRate}%</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground font-bold">Syntactic Density</span>
+                      <span className="font-bold">{session.currentVector.avgSentenceLength} W/S</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground font-bold">Vocabulary Level</span>
+                      <span className="font-bold">{session.currentVector.vocabComplexity}/10</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="p-6 bg-slate-900 text-white rounded-2xl space-y-4">
-                <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Analysis Summary</h4>
-                <p className="text-sm leading-relaxed">
+              <div className="p-6 bg-slate-900 text-white rounded-2xl space-y-4 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <Focus className="w-5 h-5 text-accent" />
+                  <h4 className="text-sm font-bold uppercase tracking-wider">Analysis Summary</h4>
+                </div>
+                <p className="text-sm leading-relaxed opacity-90">
                   {session.riskScore === 'Normal' 
                     ? "The student's behavior aligns with established writing baselines. No significant deviations in typing cadence or peripheral activity detected."
-                    : "Multiple behavioral red flags detected. Typing speed fluctuates significantly, and frequent tab switching suggests external research during a restricted module."}
+                    : `Multiple behavioral red flags detected. Typing speed fluctuates significantly (${session.typingSpeed || 0} WPM), and ${session.tabSwitchCount || 0} tab switches suggest external research during a restricted module.`}
                 </p>
               </div>
             </div>
@@ -335,16 +350,16 @@ export default function StudentSessionAnalytics() {
                 <div className="space-y-4">
                   {session.violations && session.violations.length > 0 ? (
                     session.violations.map((v, i) => (
-                      <div key={i} className="flex gap-4 items-start">
+                      <div key={i} className="flex gap-4 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
                         <div className="w-2 h-2 rounded-full bg-destructive mt-1.5 shrink-0" />
                         <div className="space-y-1">
-                          <p className="text-sm font-bold">{v}</p>
-                          <p className="text-xs text-muted-foreground">Logged at {session.lastActive}</p>
+                          <p className="text-sm font-bold text-slate-800">{v}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Logged at {session.lastActive}</p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground italic">No specific violations logged yet.</p>
+                    <p className="text-sm text-muted-foreground italic bg-green-50 p-4 rounded-xl border border-green-100">No specific violations logged yet. Student maintains a clean session.</p>
                   )}
                 </div>
               </ScrollArea>
@@ -378,7 +393,7 @@ export default function StudentSessionAnalytics() {
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 uppercase text-[10px]">Required</Badge>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed italic">
                 This activity is running under **High Integrity** mode. Acuard automatically flags any browser focus loss or non-human typing speed.
               </p>
             </CardContent>
@@ -387,7 +402,7 @@ export default function StudentSessionAnalytics() {
           <div className="p-6 bg-accent rounded-2xl text-accent-foreground shadow-xl">
             <h4 className="font-headline font-bold text-lg mb-2">Proctor Advice</h4>
             <p className="text-sm opacity-90 leading-relaxed">
-              If the human ownership match is low, review the student's keystroke rhythm variance logs for specific anomalies. Gibberish typing significantly reduces match probability.
+              If the human ownership match is low, review the student's keystroke rhythm variance logs for specific anomalies. Gibberish typing or rapid pasting significantly reduces match probability.
             </p>
           </div>
         </div>

@@ -181,6 +181,8 @@ export function MonitoringEngine({
           ...current,
           warningCount: nextWarning,
           integrityPoints: newTotal,
+          tabSwitchCount: tabSwitches.current,
+          pasteCount: pasteEvents.current,
           status: nextWarning >= 3 ? 'Locked' : (current.status === 'Completed' ? 'Completed' : 'Flagged'),
           violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
           lastActive: new Date().toLocaleTimeString()
@@ -193,14 +195,14 @@ export function MonitoringEngine({
   useEffect(() => {
     const interval = setInterval(async () => {
       const writing = currentWritingRef.current
-      if (!writing || writing.length < 20 || !studentId) return
+      if (!writing || writing.length < 5 || !studentId) return
 
       setIsAnalyzing(true)
       
       const elapsed = (Date.now() - sessionStartTime.current) / 60000
       const wordsArr = writing.trim().split(/\s+/).filter(w => w.length > 0)
       const wordCount = wordsArr.length
-      const currentWpm = Math.round(wordCount / (elapsed || 0.1))
+      const currentWpm = Math.round(wordCount / (elapsed || 0.1)) || 1
       
       const uniqueWords = new Set(writing.toLowerCase().match(/\b(\w+)\b/g)).size
       const complexity = Math.min(10, Math.round((uniqueWords / (wordCount || 1)) * 10))
@@ -241,6 +243,8 @@ export function MonitoringEngine({
             ...current,
             riskScore: result.riskScore as any,
             typingSpeed: currentWpm,
+            tabSwitchCount: tabSwitches.current,
+            pasteCount: pasteEvents.current,
             currentVector,
             lastActive: new Date().toLocaleTimeString()
           })
@@ -250,7 +254,7 @@ export function MonitoringEngine({
       } finally {
         setIsAnalyzing(false)
       }
-    }, 20000)
+    }, 15000)
 
     return () => clearInterval(interval)
   }, [studentId, assessmentId])
