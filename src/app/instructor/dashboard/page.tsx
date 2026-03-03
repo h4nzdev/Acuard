@@ -68,7 +68,7 @@ export default function InstructorDashboard() {
             <div className="space-y-4">
               {sessions.filter(s => s.status === 'Flagged' || s.status === 'Locked').length > 0 ? (
                 sessions.filter(s => s.status === 'Flagged' || s.status === 'Locked').map((session) => (
-                  <div key={session.studentId} className="flex items-center justify-between p-4 bg-slate-50 border rounded-xl hover:bg-white transition-colors group">
+                  <div key={`${session.studentId}-${session.assessmentId}`} className="flex items-center justify-between p-4 bg-slate-50 border rounded-xl hover:bg-white transition-colors group">
                     <div className="flex items-center gap-4">
                       <div className={`w-2 h-12 rounded-full ${session.status === 'Locked' ? 'bg-destructive' : 'bg-yellow-500'}`} />
                       <div>
