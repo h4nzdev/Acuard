@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/hooks/use-toast"
 import { getStudents } from "@/lib/storage"
+import Image from "next/image"
 
 function LoginForm() {
   const searchParams = useSearchParams()
@@ -84,8 +85,13 @@ function LoginForm() {
       <Card className="w-full max-w-md shadow-2xl border-none ring-1 ring-slate-200">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="w-20 h-20 flex items-center justify-center">
-              <img src="/logo.png" alt="Acuard Logo" className="w-full h-full object-contain" />
+            <div className="w-20 h-20 flex items-center justify-center relative">
+              <Image 
+                src="/logo.png" 
+                alt="Acuard Logo" 
+                fill
+                className="object-contain" 
+              />
             </div>
           </div>
           <CardTitle className="text-3xl font-headline font-bold text-slate-900">Acuard</CardTitle>

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { BookOpen, Fingerprint, BarChart3, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 export default function Home() {
   return (
@@ -8,7 +9,13 @@ export default function Home() {
       <header className="border-b bg-white/50 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Acuard Logo" className="w-10 h-10 object-contain" />
+            <Image 
+              src="/logo.png" 
+              alt="Acuard Logo" 
+              width={40} 
+              height={40} 
+              className="object-contain" 
+            />
             <span className="text-2xl font-headline font-bold text-primary">Acuard</span>
           </div>
           <div className="flex gap-4">

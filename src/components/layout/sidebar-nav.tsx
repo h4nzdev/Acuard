@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getGlobalSettings, getStudentBaseline } from "@/lib/storage"
+import Image from "next/image"
 
 interface SidebarNavProps {
   role: 'student' | 'instructor'
@@ -91,11 +92,23 @@ export function SidebarNav({ role }: SidebarNavProps) {
             )}>
               {isExpanded ? (
                 <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
-                  <img src="/logo.png" alt="Acuard Logo" className="w-8 h-8 shrink-0 object-contain" />
+                  <Image 
+                    src="/logo.png" 
+                    alt="Acuard Logo" 
+                    width={32} 
+                    height={32} 
+                    className="shrink-0 object-contain" 
+                  />
                   <h1 className="text-xl font-headline font-bold tracking-tight">Acuard</h1>
                 </div>
               ) : (
-                <img src="/logo.png" alt="Acuard Logo" className="w-8 h-8 object-contain" />
+                <Image 
+                  src="/logo.png" 
+                  alt="Acuard Logo" 
+                  width={32} 
+                  height={32} 
+                  className="object-contain" 
+                />
               )}
               
               {isExpanded && (
