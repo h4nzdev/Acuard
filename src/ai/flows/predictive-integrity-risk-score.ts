@@ -61,9 +61,10 @@ export async function predictIntegrityRiskScore(
 ): Promise<PredictiveIntegrityRiskScoreOutput> {
   if (input.apiKey) {
     process.env.GOOGLE_GENAI_API_KEY = input.apiKey;
+    process.env.GOOGLE_API_KEY = input.apiKey;
   }
 
-  if (!process.env.GOOGLE_GENAI_API_KEY) {
+  if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
     throw new Error('Gemini API Key is missing. Please set it in Instructor -> Policies.');
   }
 
@@ -120,6 +121,7 @@ const predictiveIntegrityRiskScoreFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await predictiveIntegrityRiskScorePrompt(input);
-    return output!;
+    if (!output) throw new Error("Failed to predict risk score.");
+    return output;
   }
 );
