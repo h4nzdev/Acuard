@@ -9,13 +9,13 @@ import {
   Trash2, 
   Clock, 
   Shield, 
-  ExternalLink,
-  Search,
-  BookOpen,
-  Edit,
-  Users,
-  Eye,
-  EyeOff
+  ExternalLink, 
+  Search, 
+  BookOpen, 
+  Edit, 
+  Users, 
+  Eye, 
+  EyeOff 
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ import {
 import { getAssessments, deleteAssessment } from "@/lib/storage"
 import { Assessment } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 export default function InstructorAssessments() {
   const [assessments, setAssessments] = useState<Assessment[]>([])
