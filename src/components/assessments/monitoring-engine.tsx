@@ -45,7 +45,6 @@ export function MonitoringEngine({
   const pasteEvents = useRef(0)
   const sessionStartTime = useRef<number>(Date.now())
   
-  // Ref to track writing without triggering interval reset
   const currentWritingRef = useRef(currentWriting)
   useEffect(() => {
     currentWritingRef.current = currentWriting
@@ -70,7 +69,6 @@ export function MonitoringEngine({
         if (videoRef.current) videoRef.current.srcObject = stream
       } catch (error) {
         setHasCameraPermission(false)
-        triggerPenalty(10, "Camera Access Denied")
       }
     }
     getCameraPermission()
@@ -100,57 +98,62 @@ export function MonitoringEngine({
   }, [integrityPoints])
 
   const triggerPenalty = (points: number, msg: string) => {
-    const newTotal = integrityPoints + points
-    setIntegrityPoints(newTotal)
-    
-    // Warnings every 30 points
-    const nextWarning = Math.floor(newTotal / 30)
-    if (nextWarning > warningCount) {
-      setWarningCount(nextWarning)
-      onWarning(nextWarning)
-      toast({
-        title: "Integrity Flag",
-        description: `${msg}. Warning ${nextWarning}/3`,
-        variant: "destructive"
-      })
-    }
+    setIntegrityPoints(prev => {
+      const newTotal = prev + points
+      const nextWarning = Math.floor(newTotal / 30)
+      
+      if (nextWarning > warningCount) {
+        setWarningCount(nextWarning)
+        onWarning(nextWarning)
+        toast({
+          title: "Integrity Flag",
+          description: `${msg}. Warning ${nextWarning}/3`,
+          variant: "destructive"
+        })
+      }
 
-    // Update Storage
-    const sessions = getSessions()
-    const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
-    if (current) {
-      updateSession({
-        ...current,
-        warningCount: nextWarning,
-        integrityPoints: newTotal,
-        status: nextWarning >= 3 ? 'Locked' : (current.status === 'Completed' ? 'Completed' : 'Flagged'),
-        violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
-        lastActive: new Date().toLocaleTimeString()
-      })
-    }
+      const sessions = getSessions()
+      const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
+      if (current) {
+        updateSession({
+          ...current,
+          warningCount: nextWarning,
+          integrityPoints: newTotal,
+          status: nextWarning >= 3 ? 'Locked' : (current.status === 'Completed' ? 'Completed' : 'Flagged'),
+          violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
+          lastActive: new Date().toLocaleTimeString()
+        })
+      }
+      return newTotal
+    })
   }
 
-  // Behavior Vector Comparison Logic
+  // BIOMETRIC VECTOR COMPARISON LOGIC
   useEffect(() => {
     const interval = setInterval(async () => {
       const writing = currentWritingRef.current
-      if (!writing || writing.length < 50 || !studentId) return
+      if (!writing || writing.length < 20 || !studentId) return
 
       setIsAnalyzing(true)
-      const elapsed = (Date.now() - sessionStartTime.current) / 60000
-      const words = writing.trim().split(/\s+/).filter(w => w.length > 0).length
-      const currentWpm = Math.round(words / (elapsed || 0.1))
       
-      // Calculate real complexity (unique words ratio)
+      const elapsed = (Date.now() - sessionStartTime.current) / 60000
+      const wordsArr = writing.trim().split(/\s+/).filter(w => w.length > 0)
+      const wordCount = wordsArr.length
+      const currentWpm = Math.round(wordCount / (elapsed || 0.1))
+      
+      // Calculate real complexity (Unique words ratio)
       const uniqueWords = new Set(writing.toLowerCase().match(/\b(\w+)\b/g)).size
-      const complexity = Math.min(10, Math.round((uniqueWords / (words || 1)) * 10))
+      const complexity = Math.min(10, Math.round((uniqueWords / (wordCount || 1)) * 10))
+      
+      const sentences = writing.split(/[.!?]+/).filter(s => s.trim().length > 0)
+      const avgSentenceLen = Math.round(wordCount / (sentences.length || 1))
 
       const currentVector: TypingVector = {
         wpm: currentWpm,
         consistency: 90, 
         backspaceRate: Math.round((backspaceCount.current / (writing.length || 1)) * 100),
         pauseCount: pauses.current,
-        avgSentenceLength: Math.round(words / (writing.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1)),
+        avgSentenceLength: avgSentenceLen,
         vocabComplexity: complexity,
         pasteCount: pasteEvents.current
       }
@@ -160,28 +163,32 @@ export function MonitoringEngine({
       if (baseline) {
         let deviationPenalty = 0
         
-        // Speed Deviation Check (Harsh)
+        // 1. Speed Deviation (>50% difference)
         const wpmDiff = Math.abs(currentWpm - baseline.wpm) / (baseline.wpm || 1)
-        if (wpmDiff > 0.6) deviationPenalty += 30
+        if (wpmDiff > 0.5) deviationPenalty += 30
         
-        // Vocab Complexity Drop (Indicator of gibberish)
-        if (baseline.vocabComplexity > 4 && complexity < 2) {
-          deviationPenalty += 40
-        }
+        // 2. Vocab Complexity Drop (Sign of random typing vs proper text)
+        const complexityDiff = Math.abs(complexity - baseline.vocabComplexity)
+        if (complexityDiff > 3) deviationPenalty += 20
 
-        // Syntactic Density Variance
-        const sentenceVariance = Math.abs(currentVector.avgSentenceLength - baseline.avgSentenceLength) / (baseline.avgSentenceLength || 1)
-        if (sentenceVariance > 1.5) deviationPenalty += 20
+        // 3. Sentence Structure Variance
+        const sentenceDiff = Math.abs(avgSentenceLen - baseline.avgSentenceLength) / (baseline.avgSentenceLength || 1)
+        if (sentenceDiff > 1.0) deviationPenalty += 15
 
         if (deviationPenalty > 0) {
-          triggerPenalty(deviationPenalty, "Behavioral signature mismatch (typing pattern deviation)")
+          triggerPenalty(deviationPenalty, "Behavioral signature mismatch detected")
+        } else {
+          toast({
+            title: "Integrity Verified",
+            description: "Typing cadence and syntax match your verified baseline.",
+          })
         }
       }
 
       try {
         const result = await predictIntegrityRiskScore({
           currentWritingSample: writing,
-          baselineWritingFingerprint: baseline?.writingStyleSummary || "Standard baseline",
+          baselineWritingFingerprint: baseline ? JSON.stringify(baseline) : "Standard baseline",
           typingSpeed: currentWpm,
           pasteFrequency: pasteEvents.current,
           tabSwitchCount: tabSwitches.current
@@ -202,14 +209,14 @@ export function MonitoringEngine({
           })
         }
       } catch (err) {
-        console.error("Vector check failed", err)
+        console.error("Analysis Error:", err)
       } finally {
         setIsAnalyzing(false)
       }
-    }, 15000)
+    }, 20000) // 20 second capture cycles
 
     return () => clearInterval(interval)
-  }, [studentId, assessmentId, onRiskUpdate, onWarning]) // Dependencies strictly limited to prevent interval resets
+  }, [studentId, assessmentId])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -231,7 +238,7 @@ export function MonitoringEngine({
                 riskScore === 'Normal' ? "bg-green-500" : "bg-orange-500"
               )} />
               <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary leading-none">Acuard Vector Analysis</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary leading-none">Biometric Engine</span>
                 <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1 mt-0.5">
                   <Clock className="w-2.5 h-2.5" />
                   {formatTime(timeLeft)}
@@ -260,7 +267,7 @@ export function MonitoringEngine({
                   <p className="text-xl font-headline font-bold text-slate-900">{Math.min(100, integrityPoints)}%</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Status</p>
+                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Level</p>
                   <p className={cn(
                     "text-sm font-bold uppercase",
                     riskScore === 'Normal' ? 'text-green-600' : 'text-orange-600'

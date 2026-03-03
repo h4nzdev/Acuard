@@ -4,7 +4,7 @@ export interface TypingVector {
   backspaceRate: number; // count per 100 chars
   pauseCount: number; // pauses > 2s
   avgSentenceLength: number;
-  vocabComplexity: number; // scale 1-10
+  vocabComplexity: number; // scale 1-10 (unique word ratio)
   pasteCount: number;
 }
 
@@ -17,7 +17,7 @@ export interface Question {
   correctAnswer: string;
   choices?: string[];
   choiceType?: 'True/False' | 'Custom';
-  minWords?: number; // New field for Essay length requirements
+  minWords?: number;
 }
 
 export interface Assessment {
@@ -59,7 +59,7 @@ export interface StudentSession {
   score?: number;
   totalPossiblePoints?: number;
   currentVector?: TypingVector;
-  integrityPoints?: number; // 0-100 scale
+  integrityPoints?: number; 
 }
 
 export const MOCK_ASSESSMENTS: Assessment[] = [];

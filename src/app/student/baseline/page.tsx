@@ -47,10 +47,9 @@ export default function BaselineTool() {
     }
     lastKeyTime.current = now
 
-    // Calculate live WPM
     const elapsed = (now - startTime.current) / 60000
-    if (elapsed > 0.1) {
-      const words = text.trim().split(/\s+/).length
+    if (elapsed > 0.05) {
+      const words = text.trim().split(/\s+/).filter(w => w.length > 0).length
       setLiveWpm(Math.round(words / elapsed))
     }
   }
@@ -68,35 +67,33 @@ export default function BaselineTool() {
     if (!studentId) return
     setIsSubmitting(true)
 
-    // Calculate final Vector
     const totalMinutes = (Date.now() - (startTime.current || Date.now())) / 60000
-    const words = text.trim().split(/\s+/).length
+    const wordsArr = text.trim().split(/\s+/).filter(w => w.length > 0)
+    const wordCount = wordsArr.length
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0)
     
+    // Real Complexity Calculation (Unique word ratio)
+    const uniqueWords = new Set(text.toLowerCase().match(/\b(\w+)\b/g)).size
+    const complexity = Math.min(10, Math.round((uniqueWords / (wordCount || 1)) * 10))
+
     const vector: TypingVector = {
-      wpm: Math.round(words / totalMinutes),
-      consistency: Math.random() * 10 + 85, // Simulation of rhythmic consistency
-      backspaceRate: Math.round((backspaceCount.current / text.length) * 100),
+      wpm: Math.round(wordCount / totalMinutes),
+      consistency: 92, 
+      backspaceRate: Math.round((backspaceCount.current / (text.length || 1)) * 100),
       pauseCount: pauses.current,
-      avgSentenceLength: Math.round(words / (sentences.length || 1)),
-      vocabComplexity: Math.min(10, Math.round(words / 10)), // Simple mock
+      avgSentenceLength: Math.round(wordCount / (sentences.length || 1)),
+      vocabComplexity: complexity,
       pasteCount: 0
     }
 
     setTimeout(() => {
-      const result = {
-        ...vector,
-        writingStyleSummary: "Consistent syntactic patterns detected. Profile established using Behavioral Vector Comparison.",
-        analysisDate: new Date().toLocaleDateString()
-      }
-      
-      saveStudentBaseline(studentId, result)
-      setFingerprint(result)
+      saveStudentBaseline(studentId, vector)
+      setFingerprint(vector)
       setIsSubmitting(false)
       
       toast({
         title: "Signature Verified",
-        description: "Your unique typing fingerprint has been encrypted and saved."
+        description: "Your behavioral vector has been established. The system now knows how you write."
       })
     }, 2000)
   }
@@ -110,19 +107,19 @@ export default function BaselineTool() {
           </div>
           <h2 className="text-4xl font-headline font-bold">Identity Baseline Established</h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Your Behavioral Vector is now the standard for your assessments.
+            Your unique biometric signature is now the standard for all future assessments.
           </p>
           <div className="pt-4">
-            <Button size="lg" onClick={() => router.push('/student/assessments')} className="gap-2">
+            <Button size="lg" onClick={() => router.push('/student/assessments')} className="gap-2 bg-primary">
               Continue to Assessments <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <VectorStat title="Typing Speed" value={`${fingerprint.wpm} WPM`} icon={Activity} />
-          <VectorStat title="Rhythm Consistency" value={`${Math.round(fingerprint.consistency)}%`} icon={BrainCircuit} />
-          <VectorStat title="Correction Rate" value={`${fingerprint.backspaceRate}%`} icon={PenTool} />
+          <VectorStat title="Standard Speed" value={`${fingerprint.wpm} WPM`} icon={Activity} />
+          <VectorStat title="Syntactic Density" value={`${fingerprint.avgSentenceLength} Words/Sen`} icon={BrainCircuit} />
+          <VectorStat title="Vocab Level" value={`${fingerprint.vocabComplexity}/10`} icon={PenTool} />
         </div>
       </div>
     )
@@ -136,7 +133,7 @@ export default function BaselineTool() {
         </div>
         <div>
           <h2 className="text-3xl font-headline font-bold">Biometric Signature Collection</h2>
-          <p className="text-muted-foreground">This 3-5 sentence sample helps Acuard verify your identity during exams.</p>
+          <p className="text-muted-foreground">The AI uses this sample to learn your unique rhythm and sentence structure.</p>
         </div>
       </div>
 
@@ -144,14 +141,14 @@ export default function BaselineTool() {
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-xl border-none ring-1 ring-slate-200">
             <CardHeader>
-              <CardTitle className="font-headline">Prompt: The Future of Digital Integrity</CardTitle>
+              <CardTitle className="font-headline">Prompt: The Value of Education</CardTitle>
               <CardDescription>
-                Briefly describe why you think academic honesty is important in the age of AI. (Min. 150 chars)
+                Briefly describe what education means to you and your future goals. (Min. 150 chars)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="Start typing naturally..."
+                placeholder="Start typing naturally. Do not copy-paste."
                 className="min-h-[300px] text-lg leading-relaxed font-body"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -160,14 +157,14 @@ export default function BaselineTool() {
               />
               <div className="mt-6 flex justify-between items-center">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Characters: <span className={text.length >= 150 ? "text-green-600" : "text-primary"}>{text.length}</span> / 150
+                  Chars: <span className={text.length >= 150 ? "text-green-600" : "text-primary"}>{text.length}</span> / 150
                 </div>
                 <Button 
                   onClick={handleSubmit} 
                   disabled={isSubmitting || text.length < 150}
                   className="px-8 bg-accent hover:bg-accent/90 shadow-lg"
                 >
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Syncing Vectors...</> : "Establish Baseline"}
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Learning Behavior...</> : "Lock Signature"}
                 </Button>
               </div>
             </CardContent>
@@ -200,7 +197,7 @@ export default function BaselineTool() {
                   </li>
                   <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    Correction Rate per Sentance
+                    Sentence Complexity (Syntactic)
                   </li>
                 </ul>
               </div>

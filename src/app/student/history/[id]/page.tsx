@@ -64,31 +64,37 @@ export default function AssessmentResultDetails() {
     const curr = session.currentVector;
     const base = baseline;
 
-    // Calculate Variances
+    // BIOMETRIC DIFFERENTIAL ALGORITHM
+    // Each dimension has a penalty weight
+    let totalScore = 100;
+
+    // 1. WPM Variance
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
-    const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
-    const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0)) / (base.vocabComplexity || 1);
-    
-    // Weighted match algorithm
-    let matchScore = 100;
-    matchScore -= (wpmVariance * 50); 
-    matchScore -= (syntacticVariance * 40);
-    matchScore -= (vocabVariance * 30);
-    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 5);
-    matchScore -= (session.warningCount * 15);
+    if (wpmVariance > 0.4) totalScore -= (wpmVariance * 40);
 
-    // If gibberish was typed (very low complexity), force a penalty
-    if ((curr.vocabComplexity || 0) < 2 && base.vocabComplexity > 4) {
-      matchScore -= 60;
-    }
+    // 2. Syntactic Variance (Sentence Length)
+    const sentenceVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
+    if (sentenceVariance > 0.5) totalScore -= (sentenceVariance * 30);
 
-    const finalMatch = Math.max(5, Math.min(98, Math.round(matchScore)));
+    // 3. Vocab Complexity (Unique word ratio)
+    const vocabVariance = Math.abs(curr.vocabComplexity - base.vocabComplexity);
+    if (vocabVariance > 2) totalScore -= (vocabVariance * 10);
+
+    // 4. Correction Frequency
+    const backspaceDiff = Math.abs(curr.backspaceRate - base.backspaceRate);
+    if (backspaceDiff > 5) totalScore -= 10;
+
+    // 5. Environmental Penalties
+    totalScore -= (session.tabSwitchCount * 15);
+    totalScore -= (session.pasteCount * 20);
+
+    const finalMatch = Math.max(5, Math.min(100, Math.round(totalScore)));
 
     return {
       matchPercentage: finalMatch,
       rhythmVariance: (wpmVariance * 100).toFixed(1),
-      syntacticVariance: (syntacticVariance * 100).toFixed(1),
-      isAnalyzable: true
+      syntacticVariance: (sentenceVariance * 100).toFixed(1),
+      vocabVariance: vocabVariance.toFixed(1)
     };
   }, [session, baseline]);
 
@@ -99,7 +105,6 @@ export default function AssessmentResultDetails() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <FileText className="w-12 h-12 text-slate-300" />
         <h2 className="text-xl font-bold">Results Not Found</h2>
-        <p className="text-muted-foreground">We couldn't find the results for this assessment attempt.</p>
         <Button onClick={() => router.push('/student/history')}>Back to History</Button>
       </div>
     )
@@ -110,9 +115,7 @@ export default function AssessmentResultDetails() {
     : 0
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-  
-  // Dynamic match percentage based on data, or a severe penalty if risk is high and no data exists
-  const styleMatchPercentage = analytics?.matchPercentage ?? (session.riskScore === 'Normal' ? 96 : 15)
+  const matchPercentage = analytics?.matchPercentage ?? 0
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
@@ -123,7 +126,7 @@ export default function AssessmentResultDetails() {
           </Button>
           <div>
             <h2 className="text-3xl font-headline font-bold text-slate-900">{session.assessmentTitle}</h2>
-            <p className="text-muted-foreground">Detailed performance and integrity audit</p>
+            <p className="text-muted-foreground">Biometric Authenticity Audit</p>
           </div>
         </div>
         <Badge variant="outline" className={cn(
@@ -161,7 +164,7 @@ export default function AssessmentResultDetails() {
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-green-500" />
-              Integrity Risk
+              Integrity Status
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -172,7 +175,7 @@ export default function AssessmentResultDetails() {
               {session.riskScore}
             </div>
             <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-              Based on behavioral biometrics, typing cadence, and focus patterns.
+              Based on live vector comparison against your unique writing fingerprint.
             </p>
           </CardContent>
         </Card>
@@ -181,12 +184,12 @@ export default function AssessmentResultDetails() {
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
               <Activity className="w-4 h-4 text-primary" />
-              Session Vitals
+              Captured Vitals
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Typing Speed</span>
+              <span className="text-muted-foreground">Avg Speed</span>
               <span className="font-bold">{session.typingSpeed} WPM</span>
             </div>
             <div className="flex justify-between items-center text-sm">
@@ -210,37 +213,43 @@ export default function AssessmentResultDetails() {
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <BrainCircuit className="w-5 h-5 text-primary" />
                   </div>
-                  <h3 className="font-headline font-bold text-xl">Writing Style Analysis</h3>
+                  <h3 className="font-headline font-bold text-xl">Behavioral Analysis</h3>
                 </div>
                 
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    This activity included free-text responses. Acuard compared your typing dynamics, vocabulary complexity, and syntactic patterns against your baseline.
+                    The system compared your typing dynamics, vocabulary density, and syntactic patterns against your baseline signature.
                   </p>
                   
                   {!analytics && (
                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex items-center gap-3">
                       <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                      <p className="text-xs text-yellow-700 font-medium">Insufficient behavioral data captured for high-resolution comparison.</p>
+                      <p className="text-xs text-yellow-700 font-medium">Insufficient vector data captured for analysis.</p>
                     </div>
                   )}
 
                   {analytics && (
                     <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
                       <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                        <span>Biometric Parameter</span>
-                        <span>Baseline Variance</span>
+                        <span>Biometric Vector</span>
+                        <span>Variance</span>
                       </div>
                       <div className="flex justify-between text-xs font-medium">
                         <span>Keystroke Rhythm</span>
-                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 20 ? "text-green-600" : "text-destructive")}>
+                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 30 ? "text-green-600" : "text-destructive")}>
                           {analytics.rhythmVariance}%
                         </span>
                       </div>
                       <div className="flex justify-between text-xs font-medium">
-                        <span>Syntactic Density</span>
-                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 30 ? "text-green-600" : "text-destructive")}>
+                        <span>Syntactic Structure</span>
+                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
                           {analytics.syntacticVariance}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Vocab Density</span>
+                        <span className={cn("font-bold", parseFloat(analytics.vocabVariance) < 3 ? "text-green-600" : "text-destructive")}>
+                          {analytics.vocabVariance} Scale
                         </span>
                       </div>
                     </div>
@@ -262,12 +271,12 @@ export default function AssessmentResultDetails() {
                     <circle
                       className={cn(
                         "stroke-current transition-all duration-1000 ease-out",
-                        styleMatchPercentage > 80 ? "text-primary" : 
-                        styleMatchPercentage > 40 ? "text-yellow-500" : "text-destructive"
+                        matchPercentage > 75 ? "text-primary" : 
+                        matchPercentage > 40 ? "text-yellow-500" : "text-destructive"
                       )}
                       strokeWidth="10"
                       strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * styleMatchPercentage) / 100}
+                      strokeDashoffset={251.2 - (251.2 * matchPercentage) / 100}
                       strokeLinecap="round"
                       fill="transparent"
                       r="40"
@@ -276,13 +285,13 @@ export default function AssessmentResultDetails() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-3xl font-headline font-bold text-slate-900">{styleMatchPercentage}%</span>
+                    <span className="text-3xl font-headline font-bold text-slate-900">{matchPercentage}%</span>
                     <span className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Match</span>
                   </div>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold text-slate-800">Human Ownership Probability</p>
-                  <p className="text-xs text-muted-foreground">Compared to unique writing fingerprint</p>
+                  <p className="text-xs text-muted-foreground">Differential analysis vs writing signature</p>
                 </div>
               </div>
             </div>
@@ -292,68 +301,17 @@ export default function AssessmentResultDetails() {
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-headline font-bold text-slate-900 flex items-center gap-2">
-              <ListTodo className="w-6 h-6 text-primary" />
-              Assessment Review
-            </h3>
-            <Badge variant="secondary" className="px-3 py-1 font-bold">
-              {assessment?.questions?.length || 0} Items
-            </Badge>
-          </div>
-
+          <h3 className="text-2xl font-headline font-bold text-slate-900">Submission Review</h3>
           <div className="grid gap-4">
             {assessment?.questions?.map((q, index) => (
               <Card key={q.id} className="border-none ring-1 ring-slate-200 shadow-sm overflow-hidden">
-                <div className="h-1 bg-slate-100" />
                 <CardContent className="p-6">
-                  <div className="flex justify-between items-start gap-6">
-                    <div className="space-y-4 flex-1">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-black text-primary/40 uppercase tracking-widest">Q{index + 1}</span>
-                          <Badge variant="outline" className="bg-slate-50 text-[10px] font-bold">
-                            {q.points} Points
-                          </Badge>
-                        </div>
-                        <p className="text-slate-800 font-medium text-lg leading-snug">{q.text}</p>
-                      </div>
-
-                      {q.type === 'Multiple Choice' && q.choices && (
-                        <div className="grid grid-cols-2 gap-3 mt-4">
-                          {q.choices.map((choice, cIdx) => (
-                            <div key={cIdx} className={cn(
-                              "flex items-center gap-3 p-3 rounded-lg border text-sm",
-                              q.correctAnswer === (q.choiceType === 'Custom' ? choice : String.fromCharCode(65 + cIdx))
-                                ? "bg-green-50 border-green-200 text-green-900" 
-                                : "bg-slate-50 border-slate-100 text-slate-600"
-                            )}>
-                              <div className="w-6 h-6 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold shrink-0">
-                                {String.fromCharCode(65 + cIdx)}
-                              </div>
-                              {q.choiceType === 'Custom' ? choice : `Option ${String.fromCharCode(65 + cIdx)}`}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {q.type !== 'Essay' && (
-                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-[10px] font-black uppercase text-primary tracking-widest">Correct Answer</span>
-                          </div>
-                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{q.correctAnswer}</p>
-                        </div>
-                      )}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-primary/40 uppercase tracking-widest">Q{index + 1}</span>
+                      <Badge variant="secondary" className="text-[10px] uppercase">{q.type}</Badge>
                     </div>
-                    
-                    <div className="flex flex-col items-end gap-3 shrink-0">
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase">
-                        {q.type === 'Text Area' ? <Type className="w-3 h-3" /> : q.type === 'Multiple Choice' ? <ListTodo className="w-3 h-3" /> : q.type === 'Essay' ? <Type className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
-                        {q.type}
-                      </div>
-                    </div>
+                    <p className="text-slate-800 font-medium leading-snug">{q.text}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -366,40 +324,23 @@ export default function AssessmentResultDetails() {
             <CardHeader>
               <CardTitle className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" />
-                Integrity Log
+                Audit Timeline
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-white rounded-xl border shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className={cn("w-4 h-4", session.warningCount > 0 ? "text-destructive" : "text-slate-300")} />
-                    <span className="text-xs font-bold text-slate-700">Warnings</span>
-                  </div>
-                  <span className="font-bold text-slate-900">{session.warningCount} / 3</span>
-                </div>
-                
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Incident History</p>
-                  {session.violations && session.violations.length > 0 ? (
-                    session.violations.map((v, i) => (
-                      <div key={i} className="flex gap-3 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
-                        <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
-                        <span className="text-xs text-slate-600 leading-tight">{v}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic bg-green-50 p-3 rounded-lg border border-green-100">
-                      No policy violations detected during this session.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t">
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Results are verified using Acuard behavioral fingerprinting. This report has been shared with your course instructor.
-                </p>
+                {session.violations && session.violations.length > 0 ? (
+                  session.violations.map((v, i) => (
+                    <div key={i} className="flex gap-3 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
+                      <span className="text-xs text-slate-600 leading-tight">{v}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground italic bg-green-50 p-3 rounded-lg border border-green-100">
+                    No policy violations recorded.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
