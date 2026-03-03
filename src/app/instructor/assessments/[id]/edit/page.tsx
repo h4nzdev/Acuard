@@ -19,7 +19,9 @@ import {
   CheckCircle2,
   ListTodo,
   Type,
-  AlignLeft
+  AlignLeft,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -50,6 +52,7 @@ function EditAssessmentForm() {
   const [title, setTitle] = useState("")
   const [instructions, setInstructions] = useState("")
   const [duration, setDuration] = useState("60")
+  const [isPublished, setIsPublished] = useState(false)
 
   // Questionnaire State
   const [questions, setQuestions] = useState<Question[]>([])
@@ -64,6 +67,7 @@ function EditAssessmentForm() {
       setPolicy(found.policy as any)
       setDuration(found.durationMinutes.toString())
       setQuestions(found.questions || [])
+      setIsPublished(found.isPublished || false)
       setIsLoaded(true)
     } else {
       toast({
@@ -197,6 +201,7 @@ function EditAssessmentForm() {
       description: instructions,
       policy: policy as any,
       durationMinutes: parseInt(duration),
+      isPublished,
       questions: questions.map(q => ({
         ...q,
         allowCopyPaste: policy === 'Not Allowed' ? false : q.allowCopyPaste
@@ -207,7 +212,7 @@ function EditAssessmentForm() {
 
     toast({
       title: "Assessment Updated",
-      description: "Changes have been saved successfully."
+      description: isPublished ? "Changes saved and assessment is published." : "Draft updated successfully."
     })
     router.push(`/instructor/assessments/${params.id}`)
   }
@@ -234,7 +239,10 @@ function EditAssessmentForm() {
         </div>
         <div className="flex gap-3">
           <Button variant="ghost" onClick={() => router.back()}><X className="w-4 h-4 mr-2" /> Cancel</Button>
-          <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 shadow-md"><Save className="w-4 h-4 mr-2" /> Save Changes</Button>
+          <Button onClick={handleSave} className={cn("shadow-md", isPublished ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90")}>
+            <Save className="w-4 h-4 mr-2" /> 
+            {isPublished ? "Save & Publish" : "Save Draft"}
+          </Button>
         </div>
       </div>
 
@@ -373,6 +381,30 @@ function EditAssessmentForm() {
             </div>
 
             <div className="space-y-6">
+              <Card className="border-none shadow-xl ring-1 ring-slate-200">
+                <CardHeader>
+                  <CardTitle className="text-lg font-headline flex items-center gap-2">
+                    {isPublished ? <Eye className="w-5 h-5 text-green-600" /> : <EyeOff className="w-5 h-5 text-slate-400" />}
+                    Publishing Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-publish-switch" className="font-bold">Visible to Students</Label>
+                    <Switch 
+                      id="edit-publish-switch" 
+                      checked={isPublished} 
+                      onCheckedChange={setIsPublished} 
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed italic">
+                    {isPublished 
+                      ? "This assessment is live. Students can see and start this assessment."
+                      : "This assessment is currently a draft. It is hidden from students."}
+                  </p>
+                </CardContent>
+              </Card>
+
               <div className="p-6 bg-accent rounded-2xl text-accent-foreground shadow-xl">
                 <div className="flex items-center gap-3 mb-4">
                   <AlertCircle className="w-6 h-6" />
@@ -428,7 +460,7 @@ function EditAssessmentForm() {
                               className="min-h-[80px]"
                             />
                           </div>
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(id)} className="text-destructive hover:bg-destructive/10">
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(q.id)} className="text-destructive hover:bg-destructive/10">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>

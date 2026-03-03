@@ -16,7 +16,9 @@ import {
   CheckCircle2,
   ListTodo,
   AlignLeft,
-  Users
+  Users,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -62,7 +64,16 @@ export default function AssessmentDetails() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-headline font-bold text-slate-900">{assessment.title}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-headline font-bold text-slate-900">{assessment.title}</h2>
+              <Badge variant="outline" className={cn(
+                "font-bold uppercase tracking-wider text-[10px]",
+                assessment.isPublished ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-50 text-slate-500 border-slate-200"
+              )}>
+                {assessment.isPublished ? <Eye className="w-2.5 h-2.5 mr-1" /> : <EyeOff className="w-2.5 h-2.5 mr-1" />}
+                {assessment.isPublished ? "Published" : "Draft"}
+              </Badge>
+            </div>
             <div className="flex items-center gap-3 mt-1">
               <Badge variant="outline" className={`font-bold uppercase text-[10px] ${
                 assessment.policy === 'Not Allowed' ? 'border-destructive text-destructive' :

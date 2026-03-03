@@ -27,6 +27,7 @@ export interface Assessment {
   policy: 'Not Allowed' | 'Allowed but Monitored' | 'Fully Allowed';
   durationMinutes: number;
   questions: Question[];
+  isPublished: boolean;
 }
 
 export interface Student {

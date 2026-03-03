@@ -13,7 +13,9 @@ import {
   Search,
   BookOpen,
   Edit,
-  Users
+  Users,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -100,13 +102,22 @@ export default function InstructorAssessments() {
                         <h3 className="text-xl font-headline font-bold text-slate-900 group-hover:text-primary transition-colors">
                           {assessment.title}
                         </h3>
-                        <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] ${
-                          assessment.policy === 'Not Allowed' ? 'border-destructive text-destructive' :
-                          assessment.policy === 'Allowed but Monitored' ? 'border-primary text-primary' :
-                          'border-green-600 text-green-600'
-                        }`}>
-                          {assessment.policy}
-                        </Badge>
+                        <div className="flex gap-2">
+                          <Badge variant="outline" className={cn(
+                            "font-bold uppercase tracking-wider text-[10px]",
+                            assessment.isPublished ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-50 text-slate-500 border-slate-200"
+                          )}>
+                            {assessment.isPublished ? <Eye className="w-2.5 h-2.5 mr-1" /> : <EyeOff className="w-2.5 h-2.5 mr-1" />}
+                            {assessment.isPublished ? "Published" : "Draft"}
+                          </Badge>
+                          <Badge variant="outline" className={`font-bold uppercase tracking-wider text-[10px] ${
+                            assessment.policy === 'Not Allowed' ? 'border-destructive text-destructive' :
+                            assessment.policy === 'Allowed but Monitored' ? 'border-primary text-primary' :
+                            'border-green-600 text-green-600'
+                          }`}>
+                            {assessment.policy}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1 max-w-2xl">
                         {assessment.description || "No description provided."}

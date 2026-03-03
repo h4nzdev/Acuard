@@ -19,7 +19,9 @@ import {
   CheckCircle2,
   ListTodo,
   Type,
-  AlignLeft
+  AlignLeft,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -45,6 +47,7 @@ export default function NewAssessment() {
   const [title, setTitle] = useState("")
   const [instructions, setInstructions] = useState("")
   const [duration, setDuration] = useState("60")
+  const [isPublished, setIsPublished] = useState(false)
 
   // Tab 2: Questionnaire
   const [questions, setQuestions] = useState<Question[]>([])
@@ -69,12 +72,10 @@ export default function NewAssessment() {
     setQuestions(questions.map(q => {
       if (q.id === id) {
         const updated = { ...q, ...updates }
-        // If switching to Multiple Choice and choices don't exist, init them
         if (updated.type === 'Multiple Choice' && !updated.choices) {
           updated.choices = ["", "", "", ""]
           updated.choiceType = updated.choiceType || 'True/False'
         }
-        // If switching to Essay, ensure minWords is set
         if (updated.type === 'Essay' && updated.minWords === undefined) {
           updated.minWords = 100
         }
@@ -183,6 +184,7 @@ export default function NewAssessment() {
       description: instructions,
       policy: policy as any,
       durationMinutes: parseInt(duration),
+      isPublished,
       questions: questions.map(q => ({
         ...q,
         allowCopyPaste: policy === 'Not Allowed' ? false : q.allowCopyPaste
@@ -192,8 +194,8 @@ export default function NewAssessment() {
     saveAssessment(newAssessment)
 
     toast({
-      title: "Assessment Created",
-      description: "Policy applied and activity is ready for student access."
+      title: isPublished ? "Assessment Published" : "Assessment Saved",
+      description: isPublished ? "Activity is now live for students." : "Draft saved successfully."
     })
     router.push('/instructor/assessments')
   }
@@ -212,7 +214,10 @@ export default function NewAssessment() {
         </div>
         <div className="flex gap-3">
           <Button variant="ghost" onClick={() => router.back()}><X className="w-4 h-4 mr-2" /> Cancel</Button>
-          <Button onClick={handleCreate} className="bg-accent hover:bg-accent/90"><Save className="w-4 h-4 mr-2" /> Save & Publish</Button>
+          <Button onClick={handleCreate} className={cn(isPublished ? "bg-green-600 hover:bg-green-700" : "bg-accent hover:bg-accent/90")}>
+            <Save className="w-4 h-4 mr-2" /> 
+            {isPublished ? "Publish Now" : "Save as Draft"}
+          </Button>
         </div>
       </div>
 
@@ -351,6 +356,30 @@ export default function NewAssessment() {
             </div>
 
             <div className="space-y-6">
+              <Card className="border-none shadow-xl ring-1 ring-slate-200">
+                <CardHeader>
+                  <CardTitle className="text-lg font-headline flex items-center gap-2">
+                    {isPublished ? <Eye className="w-5 h-5 text-green-600" /> : <EyeOff className="w-5 h-5 text-slate-400" />}
+                    Publishing Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="publish-switch" className="font-bold">Visible to Students</Label>
+                    <Switch 
+                      id="publish-switch" 
+                      checked={isPublished} 
+                      onCheckedChange={setIsPublished} 
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed italic">
+                    {isPublished 
+                      ? "This assessment will be visible to all enrolled students immediately after saving."
+                      : "This assessment will remain a draft. Students will not be able to see or start it."}
+                  </p>
+                </CardContent>
+              </Card>
+
               <div className="p-6 bg-accent rounded-2xl text-accent-foreground shadow-xl">
                 <div className="flex items-center gap-3 mb-4">
                   <AlertCircle className="w-6 h-6" />

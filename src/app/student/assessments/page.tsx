@@ -54,7 +54,9 @@ export default function StudentAssessments() {
       router.push('/login')
     }
     
-    setAssessments(getAssessments())
+    // Only fetch published assessments for students
+    const allAssessments = getAssessments()
+    setAssessments(allAssessments.filter(a => a.isPublished))
     setSessions(getSessions())
     setIsMounted(true)
   }, [router])
