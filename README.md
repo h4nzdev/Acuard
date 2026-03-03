@@ -9,15 +9,15 @@ Acuard monitors student behavior during assessments in real-time to detect suspi
 ## 👥 System Roles
 
 ### Instructor
-- **Assessment Management**: Create and configure quizzes, essays, and questionnaires.
-- **Granular Policy Control**: Define copy-paste rules (Disallowed, Monitored, Fully Allowed) per activity.
-- **Live Monitoring Feed**: Oversight of active sessions with real-time risk status.
+- **Assessment Management**: Create and configure quizzes, essays, and questionnaires with granular visibility (Draft vs. Published).
+- **Granular Policy Control**: Define copy-paste rules (Disallowed, Monitored, Fully Allowed) and essay word count requirements.
+- **Live Monitoring Feed**: Oversight of active sessions with real-time risk status and automated identity challenges.
 - **Incident Reports**: Access detailed behavioral logs, incident timelines, and biometric variances.
 - **Smart Import**: Use AI OCR to automatically generate questions from photos of physical assessment papers.
 
 ### Student
 - **Identity Baseline**: Establish a unique "Writing Fingerprint" through an initial biometric assessment.
-- **Secure Assessments**: Take exams in a focused environment with active proctoring.
+- **Secure Assessments**: Take exams in a focused environment with active proctoring and real-time word counting.
 - **Honesty Profile**: Monitor personal honesty scores, streaks, and institutional ranking.
 - **Performance Analytics**: View detailed grade breakdowns alongside integrity verification.
 
@@ -29,13 +29,13 @@ Acuard monitors student behavior during assessments in real-time to detect suspi
 - **AI Authorship Match**: Visual radial progress indicator showing the likelihood of human ownership for text-based responses.
 
 ### 2. Real-Time Monitoring Engine
+- **Face & Attention Tracking**: Uses pre-trained TensorFlow.js models to ensure the student remains present and focused.
 - **Tab Tracking**: Logs every instance a student switches browser focus or leaves the assessment window.
 - **Copy-Paste Detection**: Monitors unauthorized content insertion based on instructor policies.
-- **Proctoring Feed**: Optional camera-based attention tracking to ensure the student remains present.
 
 ### 3. Automated Enforcement
-- **Warning System**: Real-time toast notifications for policy violations.
-- **Auto-Lock Mechanism**: Automatically terminates sessions after 3 violations (configurable) to protect exam integrity.
+- **Warning System**: Real-time toast notifications for policy violations and behavioral signature mismatches.
+- **Auto-Lock Mechanism**: Automatically terminates sessions after 3 warnings (configurable) to protect exam integrity.
 - **Unlock Capability**: Instructors can manually restore student access after reviewing flags.
 
 ### 4. Integrity Gamification
@@ -48,14 +48,23 @@ Acuard monitors student behavior during assessments in real-time to detect suspi
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS & Shadcn UI
-- **AI & ML**: Genkit (for writing analysis and risk prediction)
+- **AI & ML**: Genkit (for writing analysis) & TensorFlow.js (for proctoring)
 - **Analytics**: Recharts
 - **Icons**: Lucide React
 - **Storage**: LocalStorage (Prototype Persistence)
 
-## 🛡 Academic Integrity Agreement
+## 🛡️ Technical Implementation: Proctoring
 
-Acuard is built on the principle of mutual trust. By using this platform, students agree to focus exclusively on their work, maintain their biometric baseline honestly, and respect the integrity policies set by their institution.
+**Approach**: Use pre-trained TensorFlow.js models for zero-latency, client-side attention tracking.
+- **Setup**: `@tensorflow-models/blazeface` and `@tensorflow/tfjs`.
+- **Pros**: 
+  - Works entirely in the browser (Privacy-first).
+  - No OpenCV compilation headaches or server-side video processing.
+  - Efficient 30-minute implementation for rapid prototyping.
+  - Good enough for real-time demo environments.
+- **Cons**: 
+  - Slightly less accurate than dedicated OpenCV solutions.
+  - But for a hackathon? **Perfect!**
 
 ---
 *© 2026 Acuard LMS. Protecting the value of credentials.*

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { updateSession, getSessions, getStudents, updateStudent, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
 import { TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
+import * as tf from '@tensorflow/tfjs'
+import * as blazeface from '@tensorflow-models/blazeface'
 
 interface MonitoringEngineProps {
   currentWriting: string
@@ -37,6 +39,11 @@ export function MonitoringEngine({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60)
   
+  // Computer Vision State
+  const [faceStatus, setFaceStatus] = useState<"Tracking" | "Missing" | "Loading">("Loading")
+  const modelRef = useRef<blazeface.BlazeFaceModel | null>(null)
+  const faceMissingCount = useRef(0)
+
   // Real-time Vectors
   const backspaceCount = useRef(0)
   const lastKeyTime = useRef<number>(Date.now())
@@ -59,6 +66,22 @@ export function MonitoringEngine({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Setup TensorFlow Face Detection
+  useEffect(() => {
+    const loadFaceModel = async () => {
+      try {
+        await tf.ready()
+        const loadedModel = await blazeface.load()
+        modelRef.current = loadedModel
+        setFaceStatus("Tracking")
+      } catch (err) {
+        console.error("TF Face Model Load Error:", err)
+        setFaceStatus("Missing") // Fallback
+      }
+    }
+    loadFaceModel()
   }, [])
 
   useEffect(() => {
@@ -128,10 +151,14 @@ export function MonitoringEngine({
     })
   }
 
-  // BIOMETRIC VECTOR COMPARISON LOGIC
+  // AI & BIOMETRIC MONITORING LOOP
   useEffect(() => {
     const interval = setInterval(async () => {
       const writing = currentWritingRef.current
+      
+      // Face detection check (Runs every 5 seconds normally, but handled here for biometric sync)
+      // Actually face detection should be more frequent
+      
       if (!writing || writing.length < 20 || !studentId) return
 
       setIsAnalyzing(true)
@@ -141,7 +168,6 @@ export function MonitoringEngine({
       const wordCount = wordsArr.length
       const currentWpm = Math.round(wordCount / (elapsed || 0.1))
       
-      // Calculate real complexity (Unique words ratio)
       const uniqueWords = new Set(writing.toLowerCase().match(/\b(\w+)\b/g)).size
       const complexity = Math.min(10, Math.round((uniqueWords / (wordCount || 1)) * 10))
       
@@ -163,16 +189,10 @@ export function MonitoringEngine({
       
       if (baseline) {
         let deviationPenalty = 0
-        
-        // 1. Speed Deviation (>50% difference)
         const wpmDiff = Math.abs(currentWpm - baseline.wpm) / (baseline.wpm || 1)
         if (wpmDiff > 0.5) deviationPenalty += 30
-        
-        // 2. Vocab Complexity Drop (Sign of random typing vs proper text)
         const complexityDiff = Math.abs(complexity - baseline.vocabComplexity)
         if (complexityDiff > 3) deviationPenalty += 20
-
-        // 3. Sentence Structure Variance
         const sentenceDiff = Math.abs(avgSentenceLen - baseline.avgSentenceLength) / (baseline.avgSentenceLength || 1)
         if (sentenceDiff > 1.0) deviationPenalty += 15
 
@@ -215,10 +235,40 @@ export function MonitoringEngine({
       } finally {
         setIsAnalyzing(false)
       }
-    }, 20000) // 20 second capture cycles
+    }, 20000)
 
     return () => clearInterval(interval)
   }, [studentId, assessmentId])
+
+  // INDEPENDENT FACE DETECTION LOOP (5s check)
+  useEffect(() => {
+    if (!modelRef.current || !hasCameraPermission) return
+
+    const faceCheck = setInterval(async () => {
+      if (videoRef.current && videoRef.current.readyState === 4) {
+        try {
+          const predictions = await modelRef.current!.estimateFaces(videoRef.current, false)
+          
+          if (predictions.length === 0) {
+            setFaceStatus("Missing")
+            faceMissingCount.current++
+            // Only penalize if face is missing for 15 seconds (3 checks)
+            if (faceMissingCount.current >= 3) {
+              triggerPenalty(10, "Continuous face absence detected")
+              faceMissingCount.current = 0 
+            }
+          } else {
+            setFaceStatus("Tracking")
+            faceMissingCount.current = 0
+          }
+        } catch (err) {
+          console.error("Detection Loop Error:", err)
+        }
+      }
+    }, 5000)
+
+    return () => clearInterval(faceCheck)
+  }, [hasCameraPermission])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -237,13 +287,19 @@ export function MonitoringEngine({
             <div className="flex items-center gap-2">
               <div className={cn(
                 "w-2 h-2 rounded-full animate-pulse",
-                riskScore === 'Normal' ? "bg-green-500" : "bg-orange-500"
+                riskScore === 'Normal' && faceStatus === 'Tracking' ? "bg-green-500" : "bg-orange-500"
               )} />
               <div className="flex flex-col">
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary leading-none">Biometric Engine</span>
                 <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1 mt-0.5">
                   <Clock className="w-2.5 h-2.5" />
                   {formatTime(timeLeft)}
+                  <span className={cn(
+                    "ml-2 text-[8px] font-black uppercase",
+                    faceStatus === 'Tracking' ? "text-green-600" : "text-destructive"
+                  )}>
+                    {faceStatus === 'Tracking' ? "● Eyes On" : "● Attention Alert"}
+                  </span>
                 </span>
               </div>
               {isAnalyzing && <Loader2 className="w-3 h-3 animate-spin text-primary/60" />}
@@ -253,39 +309,48 @@ export function MonitoringEngine({
             </Button>
           </div>
 
-          {!isCollapsed && (
-            <div className="p-4 space-y-4">
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted />
-                <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-md border border-white/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live Monitor</span>
-                </div>
+          <div className={cn("p-4 space-y-4", isCollapsed && "hidden")}>
+            <div className="relative aspect-video bg-black rounded-lg overflow-hidden border">
+              <video 
+                ref={videoRef} 
+                className="w-full h-full object-cover" 
+                autoPlay 
+                muted 
+                playsInline
+              />
+              <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-md border border-white/20">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Live Monitor</span>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Integrity Load</p>
-                  <p className="text-xl font-headline font-bold text-slate-900">{Math.min(100, integrityPoints)}%</p>
+              {faceStatus === 'Missing' && (
+                <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center backdrop-blur-[1px]">
+                  <AlertCircle className="w-10 h-10 text-white animate-pulse" />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Level</p>
-                  <p className={cn(
-                    "text-sm font-bold uppercase",
-                    riskScore === 'Normal' ? 'text-green-600' : 'text-orange-600'
-                  )}>{riskScore}</p>
-                </div>
-              </div>
+              )}
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                  <span>Warning Threshold</span>
-                  <span>{warningCount}/3</span>
-                </div>
-                <Progress value={(warningCount / 3) * 100} className="h-1.5" />
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Integrity Load</p>
+                <p className="text-xl font-headline font-bold text-slate-900">{Math.min(100, integrityPoints)}%</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Risk Level</p>
+                <p className={cn(
+                  "text-sm font-bold uppercase",
+                  riskScore === 'Normal' ? 'text-green-600' : 'text-orange-600'
+                )}>{riskScore}</p>
               </div>
             </div>
-          )}
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
+                <span>Warning Threshold</span>
+                <span>{warningCount}/3</span>
+              </div>
+              <Progress value={(warningCount / 3) * 100} className="h-1.5" />
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
