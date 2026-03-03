@@ -6,6 +6,7 @@ export interface TypingVector {
   avgSentenceLength: number;
   vocabComplexity: number; // scale 1-10 (unique word ratio)
   pasteCount: number;
+  baselineText?: string; // Original text for AI reference
 }
 
 export interface Question {

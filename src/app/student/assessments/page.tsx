@@ -19,10 +19,9 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog"
 import { getAssessments, getSessions, getStudentBaseline, getGlobalSettings, saveStudentBaseline } from "@/lib/storage"
-import { Assessment, StudentSession } from "@/app/lib/mock-data"
+import { Assessment, StudentSession, TypingVector } from "@/app/lib/mock-data"
 import { useRouter } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
-import { studentWritingFingerprintBaseline } from "@/ai/flows/student-writing-fingerprint-baseline"
 
 export default function StudentAssessments() {
   const router = useRouter()
@@ -65,7 +64,7 @@ export default function StudentAssessments() {
     if (!startTime || !baselineText) return
     const elapsedMinutes = (Date.now() - startTime) / 60000
     if (elapsedMinutes > 0) {
-      const words = baselineText.trim().split(/\s+/).length
+      const words = baselineText.trim().split(/\s+/).filter(w => w.length > 0).length
       setWpm(Math.round(words / elapsedMinutes))
     }
   }, [baselineText, startTime])
@@ -83,29 +82,41 @@ export default function StudentAssessments() {
     if (!studentId) return
 
     setIsSubmittingBaseline(true)
-    const settings = getGlobalSettings()
     
     try {
-      // Establish AI Baseline
-      const analysis = await studentWritingFingerprintBaseline({
-        writingSample: baselineText,
-        typingSpeedWpm: wpm || 45,
-        apiKey: settings.geminiApiKey
-      })
+      // Calculate Biometric Vector Locally (No AI Call needed for baseline collection)
+      const wordsArr = baselineText.trim().split(/\s+/).filter(w => w.length > 0)
+      const wordCount = wordsArr.length
+      const sentences = baselineText.split(/[.!?]+/).filter(s => s.trim().length > 0)
       
-      // Save full vector + AI analysis
-      saveStudentBaseline(studentId, analysis)
+      // Calculate Vocabulary Complexity (Unique word ratio)
+      const uniqueWords = new Set(baselineText.toLowerCase().match(/\b(\w+)\b/g)).size
+      const complexity = Math.min(10, Math.round((uniqueWords / (wordCount || 1)) * 10))
+
+      const vector: TypingVector = {
+        wpm: wpm || 45,
+        consistency: 95,
+        backspaceRate: 5,
+        pauseCount: 0,
+        avgSentenceLength: Math.round(wordCount / (sentences.length || 1)),
+        vocabComplexity: complexity,
+        pasteCount: 0,
+        baselineText: baselineText // Store raw text for future AI comparison
+      }
+      
+      // Save full vector locally
+      saveStudentBaseline(studentId, vector)
       setHasBaseline(true)
       
       toast({
         title: "Baseline Established",
-        description: "Your writing fingerprint is recorded. Assessments are now unlocked."
+        description: "Your writing signature is recorded. Assessments are now unlocked."
       })
     } catch (err) {
       console.error(err)
       toast({
-        title: "AI Analysis Failed",
-        description: "Could not generate biometric profile. Please check Instructor AI settings.",
+        title: "Failed to establish baseline",
+        description: "An error occurred while saving your profile.",
         variant: "destructive"
       })
     } finally {
@@ -137,7 +148,7 @@ export default function StudentAssessments() {
               <p className="text-xs font-bold text-primary uppercase mb-2">Instructions</p>
               <p className="text-sm text-slate-600 leading-relaxed">
                 Describe your academic goals for this semester. Write at least 50 characters. 
-                <span className="font-bold text-accent ml-1">Copy-paste is allowed for testing.</span>
+                <span className="font-bold text-accent ml-1">Do not copy-paste.</span>
               </p>
             </div>
 

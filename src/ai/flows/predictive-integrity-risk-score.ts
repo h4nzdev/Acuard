@@ -19,7 +19,7 @@ const PredictiveIntegrityRiskScoreInputSchema = z.object({
   baselineWritingFingerprint: z
     .string()
     .describe(
-      'A representative writing sample from the student, establishing their typical writing style and patterns (e.g., typing speed, sentence length, vocabulary usage).'
+      'A representative writing sample from the student, establishing their typical writing style and patterns.'
     ),
   typingSpeed: z
     .number()
@@ -73,7 +73,7 @@ export async function predictIntegrityRiskScore(
 
 const predictiveIntegrityRiskScorePrompt = ai.definePrompt({
   name: 'predictiveIntegrityRiskScorePrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: PredictiveIntegrityRiskScoreInputSchema },
   output: { schema: PredictiveIntegrityRiskScoreOutputSchema },
   config: {
@@ -89,13 +89,13 @@ const predictiveIntegrityRiskScorePrompt = ai.definePrompt({
 Analyze the following data carefully:
 
 Student's Baseline Writing Fingerprint:
-This text represents the student's typical writing style. Pay attention to patterns in sentence length, vocabulary, grammar, and overall tone.
+This text/data represents the student's typical writing style.
 \`\`\`
 {{{baselineWritingFingerprint}}}
 \`\`\`
 
 Current Assessment Writing Sample:
-This is the text the student submitted for the current assessment. Compare its writing style, vocabulary, and structural complexity against the baseline.
+This is the text the student submitted for the current assessment.
 \`\`\`
 {{{currentWritingSample}}}
 \`\`\`
@@ -105,12 +105,12 @@ Real-time Behavioral Data:
 - Paste Events: {{{pasteFrequency}}}
 - Tab Switches: {{{tabSwitchCount}}}
 
-Consider these behavioral indicators:
-- Significant deviations in typing speed (unusually high or low compared to typical human typing).
-- High number of paste events, especially if the current writing sample includes verbatim pasted content not allowed by the assessment rules (assume a reasonable threshold for 'high' if not specified).
-- Frequent tab switches, which might indicate looking up information externally or interacting with other applications.
+Indicators:
+- Significant deviations in typing speed.
+- High number of paste events.
+- Frequent tab switches.
 
-Based on your analysis, determine if the academic integrity risk is 'Normal', 'Suspicious', or 'Highly Suspicious'. Provide a brief, concise explanation for your decision, highlighting the key factors from the writing comparison and behavioral data that influenced the risk score.`,
+Determine if the academic integrity risk is 'Normal', 'Suspicious', or 'Highly Suspicious'.`,
 });
 
 const predictiveIntegrityRiskScoreFlow = ai.defineFlow(

@@ -45,7 +45,7 @@ export async function extractQuestionsFromImage(
 
 const ocrQuestionsPrompt = ai.definePrompt({
   name: 'ocrQuestionsPrompt',
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: { schema: OCRQuestionsInputSchema },
   output: { schema: OCRQuestionsOutputSchema },
   prompt: `You are an expert academic assistant. Analyze the provided image of a question paper or handwritten assessment.
