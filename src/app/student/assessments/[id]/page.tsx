@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo, CheckCircle2, Trophy, AlignLeft } from "lucide-react"
+import { FileText, Save, Send, AlertCircle, Clock, Info, ListTodo, CheckCircle2, Trophy, AlignLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { MonitoringEngine } from "@/components/assessments/monitoring-engine"
 import { getAssessments, saveSession, getSessions, updateSession, getStudents, updateStudent } from "@/lib/storage"
-import { Assessment, StudentSession } from "@/app/lib/mock-data"
+import { Assessment, StudentSession, TypingVector } from "@/app/lib/mock-data"
 import { toast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -29,6 +29,9 @@ export default function ActiveAssessment() {
   const [studentId, setStudentId] = useState<string>("")
   const [studentName, setStudentName] = useState<string>("")
   const [isSubmittingState, setIsSubmittingState] = useState(false)
+  
+  const startTimeRef = useRef<number>(Date.now())
+  const backspaceCount = useRef(0)
 
   const fullContent = Object.values(answers).join("\n\n")
 
@@ -91,7 +94,9 @@ export default function ActiveAssessment() {
     setIsMounted(true)
   }, [params.id, router])
 
-  if (!isMounted || !assessment) return null
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace') backspaceCount.current++
+  }
 
   const handleUpdateAnswer = (id: string, value: string) => {
     setAnswers(prev => ({ ...prev, [id]: value }))
@@ -111,7 +116,7 @@ export default function ActiveAssessment() {
 
   const handleSubmit = () => {
     // Validate word counts for essays
-    const invalidEssay = assessment.questions?.find(q => 
+    const invalidEssay = assessment?.questions?.find(q => 
       q.type === 'Essay' && q.minWords && getWordCount(answers[q.id] || "") < q.minWords
     )
 
@@ -126,16 +131,36 @@ export default function ActiveAssessment() {
 
     setIsSubmittingState(true)
     
+    // FINAL BIOMETRIC SNAPSHOT
+    const elapsed = (Date.now() - startTimeRef.current) / 60000
+    const writing = fullContent
+    const wordsArr = writing.trim().split(/\s+/).filter(w => w.length > 0)
+    const wordCount = wordsArr.length
+    const currentWpm = Math.round(wordCount / (elapsed || 0.1)) || 1
+    const uniqueWords = new Set(writing.toLowerCase().match(/\b(\w+)\b/g)).size
+    const complexity = Math.min(10, Math.round((uniqueWords / (wordCount || 1)) * 10))
+    const sentences = writing.split(/[.!?]+/).filter(s => s.trim().length > 0)
+    const avgSentenceLen = Math.round(wordCount / (sentences.length || 1))
+
+    const finalVector: TypingVector = {
+      wpm: currentWpm,
+      consistency: 90, 
+      backspaceRate: Math.round((backspaceCount.current / (writing.length || 1)) * 100),
+      pauseCount: 0,
+      avgSentenceLength: avgSentenceLen,
+      vocabComplexity: complexity,
+      pasteCount: 0 // Will be merged from session
+    }
+
     let earned = 0
     let total = 0
     
-    const questions = assessment.questions || []
+    const questions = assessment?.questions || []
     questions.forEach(q => {
       total += q.points
       const studentAnswer = (answers[q.id] || "").trim().toLowerCase()
       const correctAnswer = (q.correctAnswer || "").trim().toLowerCase()
       
-      // Auto-grading logic (skip for Essays which are qualitative)
       if (q.type !== 'Essay') {
         if (studentAnswer === correctAnswer && studentAnswer !== "") {
           earned += q.points
@@ -143,24 +168,24 @@ export default function ActiveAssessment() {
       }
     })
 
-    // Safety fallback for total points
     if (total === 0 && questions.length > 0) {
       total = questions.length * 10
     }
 
     const sessions = getSessions()
-    const current = sessions.find(s => s.assessmentId === assessment.id && s.studentId === studentId)
+    const current = sessions.find(s => s.assessmentId === assessment?.id && s.studentId === studentId)
     if (current) {
       updateSession({
         ...current,
         status: 'Completed',
         lastActive: new Date().toLocaleTimeString(),
         score: earned,
-        totalPossiblePoints: total
+        totalPossiblePoints: total,
+        currentVector: finalVector,
+        typingSpeed: currentWpm
       })
     }
 
-    // Update Student Streak and Honesty Score on "Clean" completion
     const students = getStudents()
     const student = students.find(s => s.id === studentId)
     if (student) {
@@ -213,7 +238,7 @@ export default function ActiveAssessment() {
             
             <div className="space-y-3">
               <Button className="w-full h-12 font-bold bg-primary shadow-lg" asChild>
-                <Link href={`/student/history/${assessment.id}`}>View Detailed Results</Link>
+                <Link href={`/student/history/${assessment?.id}`}>View Detailed Results</Link>
               </Button>
               <Button variant="ghost" className="w-full h-11 text-slate-600" asChild>
                 <Link href="/student/dashboard">Return to Dashboard</Link>
@@ -254,17 +279,17 @@ export default function ActiveAssessment() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-32 pt-4">
+    <div className="max-w-4xl mx-auto space-y-8 pb-32 pt-4" onKeyDown={handleKeyDown}>
       <div className="flex justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border sticky top-4 z-40">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-xl">
             <FileText className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-headline font-bold text-slate-900">{assessment.title}</h1>
+            <h1 className="text-2xl font-headline font-bold text-slate-900">{assessment?.title}</h1>
             <div className="flex items-center gap-3 mt-1">
               <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tighter">
-                {assessment.policy} Policy
+                {assessment?.policy} Policy
               </Badge>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
@@ -285,7 +310,7 @@ export default function ActiveAssessment() {
       </div>
 
       <div className="space-y-8">
-        {assessment.description && (
+        {assessment?.description && (
           <Card className="bg-slate-50/50 border-none ring-1 ring-slate-200">
             <CardContent className="p-6 flex gap-4">
               <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -294,7 +319,7 @@ export default function ActiveAssessment() {
           </Card>
         )}
 
-        {assessment.questions && assessment.questions.length > 0 ? (
+        {assessment?.questions && assessment.questions.length > 0 ? (
           assessment.questions.map((q, index) => {
             const wordCount = q.type === 'Essay' ? getWordCount(answers[q.id] || "") : 0
             const meetsRequirement = q.minWords ? wordCount >= q.minWords : true
@@ -396,9 +421,9 @@ export default function ActiveAssessment() {
         currentWriting={fullContent}
         onRiskUpdate={setRiskScore}
         onWarning={setWarningCount}
-        assessmentId={assessment.id}
+        assessmentId={assessment?.id}
         studentId={studentId}
-        durationMinutes={assessment.durationMinutes}
+        durationMinutes={assessment?.durationMinutes}
       />
     </div>
   )

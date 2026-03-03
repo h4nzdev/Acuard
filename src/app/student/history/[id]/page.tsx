@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -18,7 +17,8 @@ import {
   ListTodo,
   HelpCircle,
   Type,
-  BrainCircuit
+  BrainCircuit,
+  Info
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -66,33 +66,48 @@ export default function AssessmentResultDetails() {
 
     const curr = session.currentVector;
     const base = baseline;
+    const details: string[] = [];
 
     // BIOMETRIC DIFFERENTIAL ALGORITHM
     let totalScore = 100;
 
     // 1. WPM Variance
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
-    if (wpmVariance > 0.4) totalScore -= (wpmVariance * 40);
+    if (wpmVariance > 0.4) {
+      const deduction = Math.round(wpmVariance * 25);
+      totalScore -= deduction;
+      details.push(`Typing rhythm variance: ${Math.round(wpmVariance * 100)}% deviation from normal speed.`);
+    }
 
     // 2. Syntactic Variance (Sentence Length)
     const sentenceVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
-    if (sentenceVariance > 0.5) totalScore -= (sentenceVariance * 30);
+    if (sentenceVariance > 0.5) {
+      totalScore -= 15;
+      details.push(`Syntactic density mismatch: Sentences significantly ${curr.avgSentenceLength > base.avgSentenceLength ? 'longer' : 'shorter'} than baseline.`);
+    }
 
     // 3. Vocab Complexity (Unique word ratio)
     const vocabVariance = Math.abs(curr.vocabComplexity - base.vocabComplexity);
-    if (vocabVariance > 2) totalScore -= (vocabVariance * 15);
+    if (vocabVariance > 3) {
+      totalScore -= 20;
+      details.push(`Vocabulary shift: Level of unique word usage doesn't match established writing style.`);
+    }
 
     // 4. Correction Frequency
     const backspaceDiff = Math.abs(curr.backspaceRate - base.backspaceRate);
-    if (backspaceDiff > 5) totalScore -= 10;
+    if (backspaceDiff > 10) {
+      totalScore -= 10;
+      details.push(`Correction dynamics: Pattern of backspacing and revision is inconsistent with signature.`);
+    }
 
-    // 5. Environmental Penalties
-    totalScore -= (session.tabSwitchCount * 15);
-    totalScore -= (session.pasteCount * 20);
-
-    // If gibberish was in baseline but normal text is here, or vice versa
-    if ((curr.vocabComplexity < 3 && base.vocabComplexity > 5) || (curr.vocabComplexity > 5 && base.vocabComplexity < 3)) {
-      totalScore -= 60;
+    // 5. Environmental Penalties (Weighted heavily)
+    if (session.tabSwitchCount > 0) {
+      totalScore -= (session.tabSwitchCount * 10);
+      details.push(`${session.tabSwitchCount} unauthorized window switches detected during restricted activity.`);
+    }
+    if (session.pasteCount > 0) {
+      totalScore -= (session.pasteCount * 15);
+      details.push(`${session.pasteCount} external content paste events recorded.`);
     }
 
     const finalMatch = Math.max(0, Math.min(100, Math.round(totalScore)));
@@ -101,7 +116,8 @@ export default function AssessmentResultDetails() {
       matchPercentage: finalMatch,
       rhythmVariance: (wpmVariance * 100).toFixed(1),
       syntacticVariance: (sentenceVariance * 100).toFixed(1),
-      vocabVariance: vocabVariance.toFixed(1)
+      vocabVariance: vocabVariance.toFixed(1),
+      details: details.length > 0 ? details : ["Behavior aligns perfectly with established writing fingerprint."]
     };
   }, [session, baseline]);
 
@@ -252,33 +268,48 @@ export default function AssessmentResultDetails() {
                   {!analytics && (
                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex items-center gap-3">
                       <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                      <p className="text-xs text-yellow-700 font-medium">Insufficient vector data captured for analysis.</p>
+                      <p className="text-xs text-yellow-700 font-medium">Insufficient vector data captured for analysis. This can happen if the assessment was very short.</p>
                     </div>
                   )}
 
                   {analytics && (
-                    <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
-                      <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                        <span>Biometric Vector</span>
-                        <span>Variance</span>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                          <span>Biometric Vector</span>
+                          <span>Variance</span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span>Keystroke Rhythm</span>
+                          <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 30 ? "text-green-600" : "text-destructive")}>
+                            {analytics.rhythmVariance}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span>Syntactic Structure</span>
+                          <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
+                            {analytics.syntacticVariance}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span>Vocab Density</span>
+                          <span className={cn("font-bold", parseFloat(analytics.vocabVariance) < 3 ? "text-green-600" : "text-destructive")}>
+                            {analytics.vocabVariance} Scale
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-xs font-medium">
-                        <span>Keystroke Rhythm</span>
-                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 30 ? "text-green-600" : "text-destructive")}>
-                          {analytics.rhythmVariance}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs font-medium">
-                        <span>Syntactic Structure</span>
-                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
-                          {analytics.syntacticVariance}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs font-medium">
-                        <span>Vocab Density</span>
-                        <span className={cn("font-bold", parseFloat(analytics.vocabVariance) < 3 ? "text-green-600" : "text-destructive")}>
-                          {analytics.vocabVariance} Scale
-                        </span>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                          <Info className="w-3 h-3" /> Deduction Insights
+                        </p>
+                        <div className="space-y-1.5">
+                          {analytics.details.map((detail, idx) => (
+                            <p key={idx} className="text-[11px] text-slate-600 bg-white/50 p-2 rounded border border-slate-100 italic leading-relaxed">
+                              • {detail}
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}

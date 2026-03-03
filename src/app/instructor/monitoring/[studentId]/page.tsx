@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -15,7 +14,8 @@ import {
   FileText,
   BarChart3,
   BrainCircuit,
-  Focus
+  Focus,
+  Info
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -54,29 +54,49 @@ export default function StudentSessionAnalytics() {
 
     const curr = session.currentVector;
     const base = baseline;
+    const insights: string[] = [];
 
-    // BIOMETRIC DIFFERENTIAL ALGORITHM (Synced with Student View)
+    // BIOMETRIC DIFFERENTIAL ALGORITHM
     let totalScore = 100;
 
     // 1. WPM Variance
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
-    if (wpmVariance > 0.4) totalScore -= (wpmVariance * 40);
+    if (wpmVariance > 0.4) {
+      const deduction = Math.round(wpmVariance * 25);
+      totalScore -= deduction;
+      insights.push(`Abnormal typing pace: ${Math.round(wpmVariance * 100)}% variance from student's verified signature.`);
+    }
 
     // 2. Syntactic Variance (Sentence Length)
     const sentenceVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
-    if (sentenceVariance > 0.5) totalScore -= (sentenceVariance * 30);
+    if (sentenceVariance > 0.5) {
+      totalScore -= 15;
+      insights.push(`Linguistic structure mismatch: Sentences are ${curr.avgSentenceLength > base.avgSentenceLength ? 'significantly denser' : 'simpler'} than expected.`);
+    }
 
     // 3. Vocab Complexity (Unique word ratio)
     const vocabVariance = Math.abs(curr.vocabComplexity - base.vocabComplexity);
-    if (vocabVariance > 2) totalScore -= (vocabVariance * 15);
+    if (vocabVariance > 3) {
+      totalScore -= 20;
+      insights.push(`Vocabulary shift: Student's lexical diversity shifted by ${vocabVariance} levels during this session.`);
+    }
 
     // 4. Correction Frequency
     const backspaceDiff = Math.abs(curr.backspaceRate - base.backspaceRate);
-    if (backspaceDiff > 5) totalScore -= 10;
+    if (backspaceDiff > 10) {
+      totalScore -= 10;
+      insights.push(`Revision dynamics: Frequency of backspacing (${curr.backspaceRate}%) deviates from baseline patterns.`);
+    }
 
     // 5. Environmental Penalties
-    totalScore -= (session.tabSwitchCount * 15);
-    totalScore -= (session.pasteCount * 20);
+    if (session.tabSwitchCount > 0) {
+      totalScore -= (session.tabSwitchCount * 10);
+      insights.push(`Integrity breach: ${session.tabSwitchCount} browser tab switches recorded.`);
+    }
+    if (session.pasteCount > 0) {
+      totalScore -= (session.pasteCount * 15);
+      insights.push(`Integrity breach: ${session.pasteCount} external content paste events.`);
+    }
 
     const finalMatch = Math.max(0, Math.min(100, Math.round(totalScore)));
 
@@ -84,6 +104,8 @@ export default function StudentSessionAnalytics() {
       matchPercentage: finalMatch,
       rhythmVariance: (wpmVariance * 100).toFixed(1),
       syntacticVariance: (sentenceVariance * 100).toFixed(1),
+      vocabVariance: vocabVariance.toFixed(1),
+      insights: insights.length > 0 ? insights : ["Biometric behavior is highly consistent with student baseline."]
     };
   }, [session, baseline]);
 
@@ -190,38 +212,53 @@ export default function StudentSessionAnalytics() {
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <BrainCircuit className="w-5 h-5 text-primary" />
                   </div>
-                  <h3 className="font-headline font-bold text-xl">Writing Style Analysis</h3>
+                  <h3 className="font-headline font-bold text-xl">Behavioral Analysis</h3>
                 </div>
                 
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    Acuard is comparing the student's typing dynamics and syntactic patterns against their verified baseline. Deviations suggest potential AI usage, gibberish input, or proxy typing.
+                    Comparison of active session dynamics against the student's verified writing fingerprint. Deductions are based on rhythm variance, linguistic shifts, and environmental alerts.
                   </p>
                   
                   {!analytics && (
                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex items-center gap-3">
                       <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                      <p className="text-xs text-yellow-700 font-medium">Insufficient behavioral data captured for real-time comparison.</p>
+                      <p className="text-xs text-yellow-700 font-medium">Insufficient vector data captured for analysis. Data snapshots are taken every 15s or on submission.</p>
                     </div>
                   )}
 
                   {analytics && (
-                    <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
-                      <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                        <span>Biometric Parameter</span>
-                        <span>Baseline Variance</span>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                          <span>Biometric Parameter</span>
+                          <span>Baseline Variance</span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span>Keystroke Rhythm</span>
+                          <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 30 ? "text-green-600" : "text-destructive")}>
+                            {analytics.rhythmVariance}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span>Syntactic Density</span>
+                          <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
+                            {analytics.syntacticVariance}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-xs font-medium">
-                        <span>Keystroke Rhythm</span>
-                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 30 ? "text-green-600" : "text-destructive")}>
-                          {analytics.rhythmVariance}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs font-medium">
-                        <span>Syntactic Density</span>
-                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
-                          {analytics.syntacticVariance}%
-                        </span>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                          <Info className="w-3 h-3" /> Analysis Insights
+                        </p>
+                        <div className="space-y-1.5">
+                          {analytics.insights.map((insight, idx) => (
+                            <p key={idx} className="text-[11px] text-slate-600 bg-white/50 p-2 rounded border border-slate-100 italic leading-relaxed">
+                              • {insight}
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
