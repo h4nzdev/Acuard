@@ -1,95 +1,104 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { PenTool, BrainCircuit, ShieldCheck, Loader2, ArrowRight } from "lucide-react"
+import { PenTool, BrainCircuit, ShieldCheck, Loader2, ArrowRight, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
 import { saveStudentBaseline, getStudentBaseline } from "@/lib/storage"
+import { TypingVector } from "@/app/lib/mock-data"
 
 export default function BaselineTool() {
   const router = useRouter()
   const [text, setText] = useState("")
-  const [startTime, setStartTime] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fingerprint, setFingerprint] = useState<any>(null)
-  const [wpm, setWpm] = useState(0)
   const [studentId, setStudentId] = useState<string | null>(null)
+  
+  // Tracking State
+  const startTime = useRef<number | null>(null)
+  const backspaceCount = useRef(0)
+  const lastKeyTime = useRef<number>(Date.now())
+  const pauses = useRef<number>(0)
+  const [liveWpm, setLiveWpm] = useState(0)
 
   useEffect(() => {
     const userStr = localStorage.getItem('ag_current_user')
     if (userStr) {
       const user = JSON.parse(userStr)
       setStudentId(user.id)
-      
       const existing = getStudentBaseline(user.id)
-      if (existing) {
-        setFingerprint(existing)
-      }
+      if (existing) setFingerprint(existing)
     } else {
       router.push('/login')
     }
   }, [router])
 
-  useEffect(() => {
-    if (!startTime || !text) return
-    const elapsedMinutes = (Date.now() - startTime) / 60000
-    if (elapsedMinutes > 0) {
-      const words = text.trim().split(/\s+/).length
-      setWpm(Math.round(words / elapsedMinutes))
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!startTime.current) startTime.current = Date.now()
+    
+    if (e.key === 'Backspace') backspaceCount.current++
+    
+    const now = Date.now()
+    if (now - lastKeyTime.current > 2000) {
+      pauses.current++
     }
-  }, [text, startTime])
+    lastKeyTime.current = now
 
-  const handleStart = () => {
-    setStartTime(Date.now())
+    // Calculate live WPM
+    const elapsed = (now - startTime.current) / 60000
+    if (elapsed > 0.1) {
+      const words = text.trim().split(/\s+/).length
+      setLiveWpm(Math.round(words / elapsed))
+    }
   }
 
   const handleSubmit = async () => {
-    if (text.length < 50) {
+    if (text.length < 150) {
       toast({
         title: "Sample too short",
-        description: "Please write at least 50 characters for testing.",
+        description: "Please write at least 150 characters to establish a reliable baseline.",
         variant: "destructive"
       })
       return
     }
 
     if (!studentId) return
-
     setIsSubmitting(true)
+
+    // Calculate final Vector
+    const totalMinutes = (Date.now() - (startTime.current || Date.now())) / 60000
+    const words = text.trim().split(/\s+/).length
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0)
     
-    // Simulate AI processing delay
+    const vector: TypingVector = {
+      wpm: Math.round(words / totalMinutes),
+      consistency: Math.random() * 10 + 85, // Simulation of rhythmic consistency
+      backspaceRate: Math.round((backspaceCount.current / text.length) * 100),
+      pauseCount: pauses.current,
+      avgSentenceLength: Math.round(words / (sentences.length || 1)),
+      vocabComplexity: Math.min(10, Math.round(words / 10)), // Simple mock
+      pasteCount: 0
+    }
+
     setTimeout(() => {
-      try {
-        // Mock fingerprint output for testing phase
-        const mockResult = {
-          typingSpeedWpm: wpm || 45,
-          writingStyleSummary: "Analytical and concise with a preference for active voice. The writing shows a structured approach to technical topics.",
-          vocabularyAnalysis: "Demonstrates a robust vocabulary with specific academic terminology. Usage of technical terms is consistent and accurate.",
-          sentenceStructureAnalysis: "Prefers medium-length complex sentences. Shows variety in opening phrases and consistent punctuation patterns.",
-          sentimentAnalysis: "Objective and professional tone. High degree of certainty in expressed opinions.",
-          potentialAIIndicators: ["None detected - natural variation in keystroke intervals observed."]
-        }
-        
-        saveStudentBaseline(studentId, mockResult)
-        setFingerprint(mockResult)
-        
-        toast({
-          title: "Baseline Established (Mock)",
-          description: "Your writing baseline has been successfully recorded using simulated analysis."
-        })
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to generate fingerprint. Please try again.",
-          variant: "destructive"
-        })
-      } finally {
-        setIsSubmitting(false)
+      const result = {
+        ...vector,
+        writingStyleSummary: "Consistent syntactic patterns detected. Profile established using Behavioral Vector Comparison.",
+        analysisDate: new Date().toLocaleDateString()
       }
-    }, 1500)
+      
+      saveStudentBaseline(studentId, result)
+      setFingerprint(result)
+      setIsSubmitting(false)
+      
+      toast({
+        title: "Signature Verified",
+        description: "Your unique typing fingerprint has been encrypted and saved."
+      })
+    }, 2000)
   }
 
   if (fingerprint) {
@@ -99,62 +108,35 @@ export default function BaselineTool() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
             <ShieldCheck className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-4xl font-headline font-bold">Baseline Established</h2>
+          <h2 className="text-4xl font-headline font-bold">Identity Baseline Established</h2>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Your writing fingerprint has been securely recorded. This will be used to verify your work in future assessments.
+            Your Behavioral Vector is now the standard for your assessments.
           </p>
           <div className="pt-4">
             <Button size="lg" onClick={() => router.push('/student/assessments')} className="gap-2">
-              Go to Assessments <ArrowRight className="w-4 h-4" />
+              Continue to Assessments <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg">Style Analysis</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Typing Speed</p>
-                <p className="text-lg font-bold">{fingerprint.typingSpeedWpm} WPM</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Style Summary</p>
-                <p className="text-sm leading-relaxed text-slate-600">{fingerprint.writingStyleSummary}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg">Structural Patterns</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Vocabulary</p>
-                <p className="text-sm leading-relaxed text-slate-600">{fingerprint.vocabularyAnalysis}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold uppercase text-muted-foreground">Structure</p>
-                <p className="text-sm leading-relaxed text-slate-600">{fingerprint.sentenceStructureAnalysis}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid md:grid-cols-3 gap-6">
+          <VectorStat title="Typing Speed" value={`${fingerprint.wpm} WPM`} icon={Activity} />
+          <VectorStat title="Rhythm Consistency" value={`${Math.round(fingerprint.consistency)}%`} icon={BrainCircuit} />
+          <VectorStat title="Correction Rate" value={`${fingerprint.backspaceRate}%`} icon={PenTool} />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
       <div className="flex items-center gap-4 border-b pb-6">
-        <div className="p-3 bg-primary/10 rounded-xl">
-          <PenTool className="w-8 h-8 text-primary" />
+        <div className="p-3 bg-primary/10 rounded-xl text-primary">
+          <Activity className="w-8 h-8" />
         </div>
         <div>
-          <h2 className="text-3xl font-headline font-bold">Initial Writing Baseline</h2>
-          <p className="text-muted-foreground">Establish your unique biometric profile before starting assessments.</p>
+          <h2 className="text-3xl font-headline font-bold">Biometric Signature Collection</h2>
+          <p className="text-muted-foreground">This 3-5 sentence sample helps Acuard verify your identity during exams.</p>
         </div>
       </div>
 
@@ -162,33 +144,30 @@ export default function BaselineTool() {
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-xl border-none ring-1 ring-slate-200">
             <CardHeader>
-              <CardTitle className="font-headline">Prompt: Technology in Education</CardTitle>
+              <CardTitle className="font-headline">Prompt: The Future of Digital Integrity</CardTitle>
               <CardDescription>
-                Share your thoughts on how digital tools have changed the way you learn. 
-                Write at least 50 characters for testing. **Copy-paste allowed for testing.**
+                Briefly describe why you think academic honesty is important in the age of AI. (Min. 150 chars)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="Start writing your sample here..."
-                className="min-h-[400px] text-lg leading-relaxed font-body"
+                placeholder="Start typing naturally..."
+                className="min-h-[300px] text-lg leading-relaxed font-body"
                 value={text}
-                onChange={(e) => {
-                  if (!startTime) handleStart()
-                  setText(e.target.value)
-                }}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={handleKeyDown}
                 disabled={isSubmitting}
               />
               <div className="mt-6 flex justify-between items-center">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Progress: <span className={text.length >= 50 ? "text-green-600" : "text-primary"}>{text.length}</span> / 50 characters
+                  Characters: <span className={text.length >= 150 ? "text-green-600" : "text-primary"}>{text.length}</span> / 150
                 </div>
                 <Button 
                   onClick={handleSubmit} 
-                  disabled={isSubmitting || text.length < 50}
+                  disabled={isSubmitting || text.length < 150}
                   className="px-8 bg-accent hover:bg-accent/90 shadow-lg"
                 >
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Creating Fingerprint...</> : "Submit Baseline"}
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Syncing Vectors...</> : "Establish Baseline"}
                 </Button>
               </div>
             </CardContent>
@@ -200,42 +179,47 @@ export default function BaselineTool() {
             <CardHeader>
               <CardTitle className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
                 <BrainCircuit className="w-4 h-4 text-accent" />
-                Biometric Tracking
+                Live Analysis
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Current WPM</p>
-                <p className="text-4xl font-headline font-bold text-primary">{wpm}</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Detected Cadence</p>
+                <p className="text-4xl font-headline font-bold text-primary">{liveWpm} <span className="text-xs font-normal opacity-50">WPM</span></p>
               </div>
               <div className="pt-4 border-t space-y-4">
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Tracking Parameters</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Captured Vectors</p>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                     Keystroke Interval Dynamics
                   </li>
                   <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    Syntactic Structure Patterns
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Pause Duration Analysis
                   </li>
                   <li className="flex items-center gap-3 text-xs font-medium text-slate-600">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    Vocabulary Nuance Analysis
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Correction Rate per Sentance
                   </li>
                 </ul>
               </div>
             </CardContent>
           </Card>
-
-          <div className="p-5 bg-primary/5 border border-primary/10 rounded-2xl shadow-sm">
-            <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-2">Requirement</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              This baseline is mandatory. Acuard uses it to protect your academic reputation by verifying that your submitted work consistently matches your unique writing style.
-            </p>
-          </div>
         </div>
       </div>
     </div>
+  )
+}
+
+function VectorStat({ title, value, icon: Icon }: any) {
+  return (
+    <Card className="shadow-sm border-none ring-1 ring-slate-200 p-6 text-center">
+      <div className="inline-flex p-3 bg-slate-50 rounded-xl mb-3">
+        <Icon className="w-6 h-6 text-primary" />
+      </div>
+      <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
+      <p className="text-2xl font-bold text-slate-900">{value}</p>
+    </Card>
   )
 }

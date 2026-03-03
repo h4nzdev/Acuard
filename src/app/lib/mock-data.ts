@@ -1,3 +1,13 @@
+export interface TypingVector {
+  wpm: number;
+  consistency: number; // variance in wpm
+  backspaceRate: number; // count per 100 chars
+  pauseCount: number; // pauses > 2s
+  avgSentenceLength: number;
+  vocabComplexity: number; // scale 1-10
+  pasteCount: number;
+}
+
 export interface Question {
   id: string;
   text: string;
@@ -29,6 +39,7 @@ export interface Student {
   flaggedSessions: number;
   honestStreak: number;
   idPhotoUrl?: string;
+  typingBaseline?: TypingVector;
 }
 
 export interface StudentSession {
@@ -46,6 +57,8 @@ export interface StudentSession {
   violations: string[];
   score?: number;
   totalPossiblePoints?: number;
+  currentVector?: TypingVector;
+  integrityPoints?: number; // 0-100 scale
 }
 
 export const MOCK_ASSESSMENTS: Assessment[] = [];
