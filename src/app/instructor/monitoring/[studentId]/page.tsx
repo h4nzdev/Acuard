@@ -52,30 +52,40 @@ export default function StudentSessionAnalytics() {
     const curr = session.currentVector;
     const base = baseline;
 
-    // Calculate Variances
+    // BIOMETRIC DIFFERENTIAL ALGORITHM (Synced with Student View)
+    let totalScore = 100;
+
+    // 1. WPM Variance
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
-    const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
-    const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0));
-    
-    // Calculate Match Percentage
-    let matchScore = 100;
-    matchScore -= (wpmVariance * 50); 
-    matchScore -= (syntacticVariance * 40);
-    matchScore -= (vocabVariance * 15);
-    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 5);
-    matchScore -= (session.warningCount * 15);
+    if (wpmVariance > 0.4) totalScore -= (wpmVariance * 40);
+
+    // 2. Syntactic Variance (Sentence Length)
+    const sentenceVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
+    if (sentenceVariance > 0.5) totalScore -= (sentenceVariance * 30);
+
+    // 3. Vocab Complexity (Unique word ratio)
+    const vocabVariance = Math.abs(curr.vocabComplexity - base.vocabComplexity);
+    if (vocabVariance > 2) totalScore -= (vocabVariance * 15);
+
+    // 4. Correction Frequency
+    const backspaceDiff = Math.abs(curr.backspaceRate - base.backspaceRate);
+    if (backspaceDiff > 5) totalScore -= 10;
+
+    // 5. Environmental Penalties
+    totalScore -= (session.tabSwitchCount * 15);
+    totalScore -= (session.pasteCount * 20);
 
     // Severe mismatch detection
     if ((curr.vocabComplexity < 3 && base.vocabComplexity > 5) || (curr.vocabComplexity > 5 && base.vocabComplexity < 3)) {
-      matchScore -= 60;
+      totalScore -= 60;
     }
 
-    const finalMatch = Math.max(0, Math.min(100, Math.round(matchScore)));
+    const finalMatch = Math.max(0, Math.min(100, Math.round(totalScore)));
 
     return {
       matchPercentage: finalMatch,
       rhythmVariance: (wpmVariance * 100).toFixed(1),
-      syntacticVariance: (syntacticVariance * 100).toFixed(1),
+      syntacticVariance: (sentenceVariance * 100).toFixed(1),
     };
   }, [session, baseline]);
 
@@ -96,7 +106,7 @@ export default function StudentSessionAnalytics() {
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
   
-  const styleMatchPercentage = analytics?.matchPercentage ?? (session.riskScore === 'Normal' ? 96 : 5)
+  const styleMatchPercentage = analytics?.matchPercentage ?? 0
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -206,13 +216,13 @@ export default function StudentSessionAnalytics() {
                       </div>
                       <div className="flex justify-between text-xs font-medium">
                         <span>Keystroke Rhythm</span>
-                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 20 ? "text-green-600" : "text-destructive")}>
+                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 30 ? "text-green-600" : "text-destructive")}>
                           {analytics.rhythmVariance}%
                         </span>
                       </div>
                       <div className="flex justify-between text-xs font-medium">
                         <span>Syntactic Density</span>
-                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 30 ? "text-green-600" : "text-destructive")}>
+                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
                           {analytics.syntacticVariance}%
                         </span>
                       </div>
@@ -235,7 +245,7 @@ export default function StudentSessionAnalytics() {
                     <circle
                       className={cn(
                         "stroke-current transition-all duration-1000 ease-out",
-                        styleMatchPercentage > 80 ? "text-primary" : 
+                        styleMatchPercentage > 75 ? "text-primary" : 
                         styleMatchPercentage > 40 ? "text-yellow-500" : "text-destructive"
                       )}
                       strokeWidth="10"
