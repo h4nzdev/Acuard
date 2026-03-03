@@ -58,7 +58,6 @@ export default function AssessmentResultDetails() {
     setIsMounted(true)
   }, [params.id, router])
 
-  // Behavioral Vector Comparison Logic for the UI
   const analytics = useMemo(() => {
     if (!session || !baseline || !session.currentVector) return null;
 
@@ -67,18 +66,21 @@ export default function AssessmentResultDetails() {
 
     // Calculate Variances
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
-    const rhythmVariance = Math.abs((curr.consistency || 0) - (base.consistency || 0));
     const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
+    const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0)) / (base.vocabComplexity || 1);
     
-    // Calculate Match Percentage (Heuristic)
-    // 100% - Weighted penalties for deviations
+    // Weighted match algorithm
     let matchScore = 100;
-    matchScore -= (wpmVariance * 40); // WPM diff is a major factor
-    matchScore -= (syntacticVariance * 30); // Style diff is major
-    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 2); // Correction diff
-    
-    // Impact of suspicious behaviors
-    matchScore -= (session.warningCount * 10);
+    matchScore -= (wpmVariance * 50); 
+    matchScore -= (syntacticVariance * 40);
+    matchScore -= (vocabVariance * 30);
+    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 5);
+    matchScore -= (session.warningCount * 15);
+
+    // If gibberish was typed (very low complexity), force a penalty
+    if ((curr.vocabComplexity || 0) < 2 && base.vocabComplexity > 4) {
+      matchScore -= 60;
+    }
 
     const finalMatch = Math.max(5, Math.min(98, Math.round(matchScore)));
 
@@ -108,7 +110,9 @@ export default function AssessmentResultDetails() {
     : 0
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-  const styleMatchPercentage = analytics?.matchPercentage || (session.riskScore === 'Normal' ? 96 : 45)
+  
+  // Dynamic match percentage based on data, or a severe penalty if risk is high and no data exists
+  const styleMatchPercentage = analytics?.matchPercentage ?? (session.riskScore === 'Normal' ? 96 : 15)
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
@@ -211,27 +215,36 @@ export default function AssessmentResultDetails() {
                 
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    This activity included free-text responses (Essays, Text Areas, or Questionnaires). Acuard compared your typing dynamics and syntactic patterns against your baseline to verify that the work is your own and not AI-generated.
+                    This activity included free-text responses. Acuard compared your typing dynamics, vocabulary complexity, and syntactic patterns against your baseline.
                   </p>
                   
-                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                      <span>Biometric Parameter</span>
-                      <span>Baseline Variance</span>
+                  {!analytics && (
+                    <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                      <p className="text-xs text-yellow-700 font-medium">Insufficient behavioral data captured for high-resolution comparison.</p>
                     </div>
-                    <div className="flex justify-between text-xs font-medium">
-                      <span>Keystroke Rhythm</span>
-                      <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
-                        {analytics ? `< ${analytics.rhythmVariance}%` : (session.riskScore === 'Normal' ? '< 4%' : '> 22%')}
-                      </span>
+                  )}
+
+                  {analytics && (
+                    <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                      <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                        <span>Biometric Parameter</span>
+                        <span>Baseline Variance</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Keystroke Rhythm</span>
+                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 20 ? "text-green-600" : "text-destructive")}>
+                          {analytics.rhythmVariance}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Syntactic Density</span>
+                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 30 ? "text-green-600" : "text-destructive")}>
+                          {analytics.syntacticVariance}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs font-medium">
-                      <span>Syntactic Density</span>
-                      <span className={cn("font-bold", session.riskScore === 'Normal' ? "text-green-600" : "text-destructive")}>
-                        {analytics ? `< ${analytics.syntacticVariance}%` : (session.riskScore === 'Normal' ? '< 2%' : '> 15%')}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

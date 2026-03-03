@@ -44,6 +44,12 @@ export function MonitoringEngine({
   const tabSwitches = useRef(0)
   const pasteEvents = useRef(0)
   const sessionStartTime = useRef<number>(Date.now())
+  
+  // Ref to track writing without triggering interval reset
+  const currentWritingRef = useRef(currentWriting)
+  useEffect(() => {
+    currentWritingRef.current = currentWriting
+  }, [currentWriting])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -117,7 +123,7 @@ export function MonitoringEngine({
         ...current,
         warningCount: nextWarning,
         integrityPoints: newTotal,
-        status: nextWarning >= 3 ? 'Locked' : 'Flagged',
+        status: nextWarning >= 3 ? 'Locked' : (current.status === 'Completed' ? 'Completed' : 'Flagged'),
         violations: [...(current.violations || []), `${msg} at ${new Date().toLocaleTimeString()}`],
         lastActive: new Date().toLocaleTimeString()
       })
@@ -127,19 +133,25 @@ export function MonitoringEngine({
   // Behavior Vector Comparison Logic
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (!currentWriting || currentWriting.length < 50 || !studentId) return
+      const writing = currentWritingRef.current
+      if (!writing || writing.length < 50 || !studentId) return
 
       setIsAnalyzing(true)
       const elapsed = (Date.now() - sessionStartTime.current) / 60000
-      const words = currentWriting.trim().split(/\s+/).length
-      const currentWpm = Math.round(words / elapsed)
+      const words = writing.trim().split(/\s+/).filter(w => w.length > 0).length
+      const currentWpm = Math.round(words / (elapsed || 0.1))
+      
+      // Calculate real complexity (unique words ratio)
+      const uniqueWords = new Set(writing.toLowerCase().match(/\b(\w+)\b/g)).size
+      const complexity = Math.min(10, Math.round((uniqueWords / (words || 1)) * 10))
+
       const currentVector: TypingVector = {
         wpm: currentWpm,
-        consistency: 90, // Calculated value simulation
-        backspaceRate: Math.round((backspaceCount.current / currentWriting.length) * 100),
+        consistency: 90, 
+        backspaceRate: Math.round((backspaceCount.current / (writing.length || 1)) * 100),
         pauseCount: pauses.current,
-        avgSentenceLength: Math.round(words / (currentWriting.split(/[.!?]+/).length || 1)),
-        vocabComplexity: 5,
+        avgSentenceLength: Math.round(words / (writing.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1)),
+        vocabComplexity: complexity,
         pasteCount: pasteEvents.current
       }
 
@@ -147,19 +159,28 @@ export function MonitoringEngine({
       
       if (baseline) {
         let deviationPenalty = 0
-        // Speed Deviation Check
-        const wpmDiff = Math.abs(currentWpm - baseline.wpm) / baseline.wpm
-        if (wpmDiff > 0.5) deviationPenalty += 30
         
-        // Backspace Rate Check
-        if (Math.abs(currentVector.backspaceRate - baseline.backspaceRate) > 5) deviationPenalty += 10
+        // Speed Deviation Check (Harsh)
+        const wpmDiff = Math.abs(currentWpm - baseline.wpm) / (baseline.wpm || 1)
+        if (wpmDiff > 0.6) deviationPenalty += 30
+        
+        // Vocab Complexity Drop (Indicator of gibberish)
+        if (baseline.vocabComplexity > 4 && complexity < 2) {
+          deviationPenalty += 40
+        }
 
-        if (deviationPenalty > 0) triggerPenalty(deviationPenalty, "Typing cadence deviation detected")
+        // Syntactic Density Variance
+        const sentenceVariance = Math.abs(currentVector.avgSentenceLength - baseline.avgSentenceLength) / (baseline.avgSentenceLength || 1)
+        if (sentenceVariance > 1.5) deviationPenalty += 20
+
+        if (deviationPenalty > 0) {
+          triggerPenalty(deviationPenalty, "Behavioral signature mismatch (typing pattern deviation)")
+        }
       }
 
       try {
         const result = await predictIntegrityRiskScore({
-          currentWritingSample: currentWriting,
+          currentWritingSample: writing,
           baselineWritingFingerprint: baseline?.writingStyleSummary || "Standard baseline",
           typingSpeed: currentWpm,
           pasteFrequency: pasteEvents.current,
@@ -188,7 +209,7 @@ export function MonitoringEngine({
     }, 15000)
 
     return () => clearInterval(interval)
-  }, [currentWriting, studentId, assessmentId])
+  }, [studentId, assessmentId, onRiskUpdate, onWarning]) // Dependencies strictly limited to prevent interval resets
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -247,7 +268,13 @@ export function MonitoringEngine({
                 </div>
               </div>
 
-              <Progress value={(warningCount / 3) * 100} className="h-1.5" />
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
+                  <span>Warning Threshold</span>
+                  <span>{warningCount}/3</span>
+                </div>
+                <Progress value={(warningCount / 3) * 100} className="h-1.5" />
+              </div>
             </div>
           )}
         </CardContent>

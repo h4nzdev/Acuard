@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -56,13 +55,20 @@ export default function StudentSessionAnalytics() {
     // Calculate Variances
     const wpmVariance = Math.abs(curr.wpm - base.wpm) / (base.wpm || 1);
     const syntacticVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
+    const vocabVariance = Math.abs((curr.vocabComplexity || 0) - (base.vocabComplexity || 0)) / (base.vocabComplexity || 1);
     
     // Calculate Match Percentage (Heuristic)
     let matchScore = 100;
-    matchScore -= (wpmVariance * 40); 
-    matchScore -= (syntacticVariance * 30);
-    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 2);
-    matchScore -= (session.warningCount * 10);
+    matchScore -= (wpmVariance * 50); 
+    matchScore -= (syntacticVariance * 40);
+    matchScore -= (vocabVariance * 30);
+    matchScore -= (Math.abs(curr.backspaceRate - base.backspaceRate) * 5);
+    matchScore -= (session.warningCount * 15);
+
+    // If gibberish was typed (very low complexity), force a severe match drop
+    if ((curr.vocabComplexity || 0) < 2 && base.vocabComplexity > 4) {
+      matchScore -= 60;
+    }
 
     const finalMatch = Math.max(5, Math.min(98, Math.round(matchScore)));
 
@@ -89,7 +95,9 @@ export default function StudentSessionAnalytics() {
   }
 
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-  const styleMatchPercentage = analytics?.matchPercentage || (session.riskScore === 'Normal' ? 96 : session.riskScore === 'Suspicious' ? 54 : 18)
+  
+  // Dynamic percentage or severe penalty if high risk and no analytics
+  const styleMatchPercentage = analytics?.matchPercentage ?? (session.riskScore === 'Normal' ? 96 : 15)
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -181,27 +189,36 @@ export default function StudentSessionAnalytics() {
                 
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    Acuard is comparing the student's typing dynamics and syntactic patterns against their verified baseline. Deviations suggest potential AI usage or external collaboration.
+                    Acuard is comparing the student's typing dynamics and syntactic patterns against their verified baseline. Deviations suggest potential AI usage, gibberish input, or proxy typing.
                   </p>
                   
-                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
-                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                      <span>Biometric Parameter</span>
-                      <span>Baseline Variance</span>
+                  {!analytics && (
+                    <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                      <p className="text-xs text-yellow-700 font-medium">Insufficient behavioral data captured for real-time comparison.</p>
                     </div>
-                    <div className="flex justify-between text-xs font-medium">
-                      <span>Keystroke Rhythm</span>
-                      <span className={cn("font-bold", (analytics ? parseFloat(analytics.rhythmVariance) < 5 : session.riskScore === 'Normal') ? "text-green-600" : "text-destructive")}>
-                        {analytics ? `${analytics.rhythmVariance}%` : (session.riskScore === 'Normal' ? '< 4%' : '> 22%')}
-                      </span>
+                  )}
+
+                  {analytics && (
+                    <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                      <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                        <span>Biometric Parameter</span>
+                        <span>Baseline Variance</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Keystroke Rhythm</span>
+                        <span className={cn("font-bold", parseFloat(analytics.rhythmVariance) < 20 ? "text-green-600" : "text-destructive")}>
+                          {analytics.rhythmVariance}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium">
+                        <span>Syntactic Density</span>
+                        <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 30 ? "text-green-600" : "text-destructive")}>
+                          {analytics.syntacticVariance}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-xs font-medium">
-                      <span>Syntactic Density</span>
-                      <span className={cn("font-bold", (analytics ? parseFloat(analytics.syntacticVariance) < 5 : session.riskScore === 'Normal') ? "text-green-600" : "text-destructive")}>
-                        {analytics ? `${analytics.syntacticVariance}%` : (session.riskScore === 'Normal' ? '< 2%' : '> 15%')}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -348,7 +365,7 @@ export default function StudentSessionAnalytics() {
           <div className="p-6 bg-accent rounded-2xl text-accent-foreground shadow-xl">
             <h4 className="font-headline font-bold text-lg mb-2">Proctor Advice</h4>
             <p className="text-sm opacity-90 leading-relaxed">
-              If the human ownership match is low, we recommend reviewing the student's keystroke rhythm variance logs for specific anomalies.
+              If the human ownership match is low, review the student's keystroke rhythm variance logs for specific anomalies. Gibberish typing significantly reduces match probability.
             </p>
           </div>
         </div>
