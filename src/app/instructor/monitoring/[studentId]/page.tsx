@@ -1,29 +1,33 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { 
-  ArrowLeft, 
-  ShieldAlert, 
-  Activity, 
-  MousePointer2, 
-  Copy, 
-  Clock, 
+import {
+  ArrowLeft,
+  Trophy,
+  ShieldCheck,
+  ShieldAlert,
   AlertTriangle,
-  User,
+  Clock,
+  Activity,
   FileText,
-  BarChart3,
+  MousePointer2,
+  Copy,
+  CheckCircle2,
+  ListTodo,
+  HelpCircle,
+  Type,
   BrainCircuit,
-  Focus,
-  Info
+  Info,
+  User,
+  BarChart3
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { getSessions, getAssessments, getStudentBaseline } from "@/lib/storage"
+import { getSessions, getAssessments, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
 import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 
@@ -43,7 +47,7 @@ export default function StudentSessionAnalytics() {
       const assessments = getAssessments()
       const foundAssessment = assessments.find(a => a.id === found.assessmentId)
       setAssessment(foundAssessment || null)
-      
+
       const studentBaseline = getStudentBaseline(params.studentId as string)
       setBaseline(studentBaseline)
     }
@@ -55,7 +59,7 @@ export default function StudentSessionAnalytics() {
 
     const curr = session.currentVector;
     const base = baseline;
-    const insights: string[] = [];
+    const details: string[] = [];
 
     // BIOMETRIC DIFFERENTIAL ALGORITHM
     let totalScore = 100;
@@ -65,38 +69,38 @@ export default function StudentSessionAnalytics() {
     if (wpmVariance > 0.4) {
       const deduction = Math.round(wpmVariance * 25);
       totalScore -= deduction;
-      insights.push(`Abnormal typing pace: ${Math.round(wpmVariance * 100)}% variance from student's verified signature.`);
+      details.push(`Typing rhythm variance: ${Math.round(wpmVariance * 100)}% deviation from normal speed.`);
     }
 
     // 2. Syntactic Variance (Sentence Length)
     const sentenceVariance = Math.abs(curr.avgSentenceLength - base.avgSentenceLength) / (base.avgSentenceLength || 1);
     if (sentenceVariance > 0.5) {
       totalScore -= 15;
-      insights.push(`Linguistic structure mismatch: Sentences are ${curr.avgSentenceLength > base.avgSentenceLength ? 'significantly denser' : 'simpler'} than expected.`);
+      details.push(`Syntactic density mismatch: Sentences significantly ${curr.avgSentenceLength > base.avgSentenceLength ? 'longer' : 'shorter'} than baseline.`);
     }
 
     // 3. Vocab Complexity (Unique word ratio)
     const vocabVariance = Math.abs(curr.vocabComplexity - base.vocabComplexity);
     if (vocabVariance > 3) {
       totalScore -= 20;
-      insights.push(`Vocabulary shift: Student's lexical diversity shifted by ${vocabVariance} levels during this session.`);
+      details.push(`Vocabulary shift: Level of unique word usage doesn't match established writing style.`);
     }
 
     // 4. Correction Frequency
     const backspaceDiff = Math.abs(curr.backspaceRate - base.backspaceRate);
     if (backspaceDiff > 10) {
       totalScore -= 10;
-      insights.push(`Revision dynamics: Frequency of backspacing (${curr.backspaceRate}%) deviates from baseline patterns.`);
+      details.push(`Correction dynamics: Pattern of backspacing and revision is inconsistent with signature.`);
     }
 
-    // 5. Environmental Penalties
+    // 5. Environmental Penalties (Weighted heavily)
     if (session.tabSwitchCount > 0) {
       totalScore -= (session.tabSwitchCount * 10);
-      insights.push(`Integrity breach: ${session.tabSwitchCount} browser tab switches recorded.`);
+      details.push(`${session.tabSwitchCount} unauthorized window switches detected during restricted activity.`);
     }
     if (session.pasteCount > 0) {
       totalScore -= (session.pasteCount * 15);
-      insights.push(`Integrity breach: ${session.pasteCount} external content paste events.`);
+      details.push(`${session.pasteCount} external content paste events recorded.`);
     }
 
     const finalMatch = Math.max(0, Math.min(100, Math.round(totalScore)));
@@ -106,7 +110,7 @@ export default function StudentSessionAnalytics() {
       rhythmVariance: (wpmVariance * 100).toFixed(1),
       syntacticVariance: (sentenceVariance * 100).toFixed(1),
       vocabVariance: vocabVariance.toFixed(1),
-      insights: insights.length > 0 ? insights : ["Biometric behavior is highly consistent with student baseline."]
+      details: details.length > 0 ? details : ["Behavior aligns perfectly with established writing fingerprint."]
     };
   }, [session, baseline]);
 
@@ -125,81 +129,117 @@ export default function StudentSessionAnalytics() {
     )
   }
 
+  const scorePercentage = session.score !== undefined && session.totalPossiblePoints && session.totalPossiblePoints > 0
+    ? Math.round((session.score / session.totalPossiblePoints) * 100)
+    : 0
+
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
-  const styleMatchPercentage = analytics?.matchPercentage ?? 0
+  const matchPercentage = analytics?.matchPercentage ?? 0
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-headline font-bold">{session.studentName}</h2>
-              <Badge variant={session.status === 'Locked' ? 'destructive' : 'secondary'} className="font-bold">
-                {session.status}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground">Session Analytics for {session.assessmentTitle}</p>
+            <h2 className="text-3xl font-headline font-bold text-slate-900">{session.assessmentTitle}</h2>
+            <p className="text-muted-foreground">Biometric Authenticity Audit</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
-            Force Lock Session
-          </Button>
-          <Button className="bg-primary">
-            Contact Student
-          </Button>
-        </div>
+        <Badge variant="outline" className={cn(
+          "font-bold uppercase tracking-widest px-4 py-1",
+          session.status === 'Completed' ? "bg-green-50 text-green-700 border-green-200" : "bg-destructive/5 text-destructive border-destructive/10"
+        )}>
+          {session.status}
+        </Badge>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="shadow-md">
+        <Card className="shadow-lg border-none ring-1 ring-slate-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" />
+            <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-accent" />
+              Final Grade
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-1">
+              <span className="text-5xl font-headline font-bold text-primary">{session.score ?? 0}</span>
+              <span className="text-xl text-muted-foreground font-medium">/ {session.totalPossiblePoints ?? 0}</span>
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
+                <span>Score Progress</span>
+                <span>{scorePercentage}%</span>
+              </div>
+              <Progress value={scorePercentage} className="h-1.5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg border-none ring-1 ring-slate-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-green-500" />
               Integrity Status
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end gap-2">
-              <span className={`text-4xl font-headline font-bold ${
-                session.riskScore === 'Highly Suspicious' ? 'text-destructive' : 
-                session.riskScore === 'Suspicious' ? 'text-yellow-600' : 'text-green-600'
-              }`}>
-                {session.riskScore}
+            <div className={cn(
+              "text-3xl font-headline font-bold",
+              session.riskScore === 'Normal' ? "text-green-600" : "text-destructive"
+            )}>
+              {session.riskScore}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
+              Based on live vector comparison against student's unique writing fingerprint.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg border-none ring-1 ring-slate-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" />
+              Captured Vitals
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Avg Speed</span>
+              <span className="font-bold">{session.typingSpeed || session.currentVector?.wpm || 0} WPM</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Tab Switches</span>
+              <span className={cn("font-bold", session.tabSwitchCount && session.tabSwitchCount > 0 ? "text-destructive" : "text-slate-900")}>
+                {session.tabSwitchCount || 0}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Based on behavioral biometrics</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive" />
-              Warnings Triggered
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-headline font-bold">{session.warningCount} / 3</div>
-            <Progress value={(session.warningCount / 3) * 100} className="h-2 mt-2" />
-            <p className="text-xs text-muted-foreground mt-2">Auto-lock at 3 warnings</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="w-4 h-4 text-accent" />
-              Typing Cadence
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-headline font-bold">{session.typingSpeed || session.currentVector?.wpm || 0} <span className="text-sm">WPM</span></div>
-            <p className="text-xs text-muted-foreground mt-2">Captured during active session</p>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Paste Events</span>
+              <span className={cn("font-bold", session.pasteCount && session.pasteCount > 0 ? "text-destructive" : "text-slate-900")}>
+                {session.pasteCount || 0}
+              </span>
+            </div>
+            {session.currentVector && (
+              <div className="pt-2 border-t mt-2 space-y-2">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-tighter mb-1">Detailed Analytics</p>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Correction Frequency</span>
+                  <span className="font-bold">{session.currentVector.backspaceRate}%</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Syntactic Density</span>
+                  <span className="font-bold">{session.currentVector.avgSentenceLength} Words/Sen</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Vocab Complexity</span>
+                  <span className="font-bold">{session.currentVector.vocabComplexity}/10</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -215,16 +255,16 @@ export default function StudentSessionAnalytics() {
                   </div>
                   <h3 className="font-headline font-bold text-xl">Behavioral Analysis</h3>
                 </div>
-                
+
                 <div className="space-y-6">
                   <p className="text-sm text-slate-600 leading-relaxed">
-                    Comparison of active session dynamics against the student's verified writing fingerprint. Deductions are based on rhythm variance, linguistic shifts, and environmental alerts.
+                    The system compared student's typing dynamics, vocabulary density, and syntactic patterns against their baseline signature.
                   </p>
-                  
+
                   {!analytics && (
                     <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex items-center gap-3">
                       <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                      <p className="text-xs text-yellow-700 font-medium">Insufficient vector data captured for analysis. Data snapshots are taken every 15s or on submission.</p>
+                      <p className="text-xs text-yellow-700 font-medium">Insufficient vector data captured for analysis. This can happen if the assessment was very short.</p>
                     </div>
                   )}
 
@@ -232,8 +272,8 @@ export default function StudentSessionAnalytics() {
                     <div className="space-y-4">
                       <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-3 shadow-sm">
                         <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-                          <span>Biometric Parameter</span>
-                          <span>Baseline Variance</span>
+                          <span>Biometric Vector</span>
+                          <span>Variance</span>
                         </div>
                         <div className="flex justify-between text-xs font-medium">
                           <span>Keystroke Rhythm</span>
@@ -242,21 +282,27 @@ export default function StudentSessionAnalytics() {
                           </span>
                         </div>
                         <div className="flex justify-between text-xs font-medium">
-                          <span>Syntactic Density</span>
+                          <span>Syntactic Structure</span>
                           <span className={cn("font-bold", parseFloat(analytics.syntacticVariance) < 40 ? "text-green-600" : "text-destructive")}>
                             {analytics.syntacticVariance}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span>Vocab Density</span>
+                          <span className={cn("font-bold", parseFloat(analytics.vocabVariance) < 3 ? "text-green-600" : "text-destructive")}>
+                            {analytics.vocabVariance} Scale
                           </span>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                          <Info className="w-3 h-3" /> Analysis Insights
+                          <Info className="w-3 h-3" /> Deduction Insights
                         </p>
                         <div className="space-y-1.5">
-                          {analytics.insights.map((insight, idx) => (
+                          {analytics.details.map((detail, idx) => (
                             <p key={idx} className="text-[11px] text-slate-600 bg-white/50 p-2 rounded border border-slate-100 italic leading-relaxed">
-                              • {insight}
+                              • {detail}
                             </p>
                           ))}
                         </div>
@@ -280,12 +326,12 @@ export default function StudentSessionAnalytics() {
                     <circle
                       className={cn(
                         "stroke-current transition-all duration-1000 ease-out",
-                        styleMatchPercentage > 75 ? "text-primary" : 
-                        styleMatchPercentage > 40 ? "text-yellow-500" : "text-destructive"
+                        matchPercentage > 75 ? "text-primary" :
+                        matchPercentage > 40 ? "text-yellow-500" : "text-destructive"
                       )}
                       strokeWidth="10"
                       strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * styleMatchPercentage) / 100}
+                      strokeDashoffset={251.2 - (251.2 * matchPercentage) / 100}
                       strokeLinecap="round"
                       fill="transparent"
                       r="40"
@@ -294,20 +340,20 @@ export default function StudentSessionAnalytics() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-3xl font-headline font-bold text-slate-900">{styleMatchPercentage}%</span>
+                    <span className="text-3xl font-headline font-bold text-slate-900">{matchPercentage}%</span>
                     <span className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Match</span>
                   </div>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold text-slate-800">Human Ownership Probability</p>
-                  <p className="text-xs text-muted-foreground">Compared to unique writing fingerprint</p>
+                  <p className="text-xs text-muted-foreground">Differential analysis vs writing signature</p>
                 </div>
 
-                {styleMatchPercentage < 30 && (
+                {matchPercentage < 30 && (
                   <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
                     <p className="text-destructive font-black text-xs uppercase tracking-tighter text-center flex flex-col items-center gap-1">
                       <ShieldAlert className="w-4 h-4" />
-                      <span>IDENTITY ALERT: Is that really them? 🧐</span>
+                      <span>Wait... is that really them? 🤨</span>
                     </p>
                   </div>
                 )}
@@ -318,131 +364,52 @@ export default function StudentSessionAnalytics() {
       )}
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 shadow-lg">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-primary" />
-              <CardTitle>Behavioral Patterns</CardTitle>
-            </div>
-            <CardDescription>Detailed metrics captured during the active session.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <Copy className="w-4 h-4 text-primary" />
+        <div className="lg:col-span-2 space-y-6">
+          <h3 className="text-2xl font-headline font-bold text-slate-900">Submission Review</h3>
+          <div className="grid gap-4">
+            {assessment?.questions?.map((q, index) => (
+              <Card key={q.id} className="border-none ring-1 ring-slate-200 shadow-sm overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-primary/40 uppercase tracking-widest">Q{index + 1}</span>
+                      <Badge variant="secondary" className="text-[10px] uppercase">{q.type}</Badge>
                     </div>
-                    <span className="text-sm font-medium">Paste Frequency</span>
+                    <p className="text-slate-800 font-medium leading-snug">{q.text}</p>
                   </div>
-                  <span className={cn("text-lg font-bold", session.pasteCount > 0 ? "text-destructive" : "text-slate-900")}>{session.pasteCount || 0}</span>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white rounded-lg shadow-sm">
-                      <MousePointer2 className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium">Tab Switches</span>
-                  </div>
-                  <span className={cn("text-lg font-bold", session.tabSwitchCount > 0 ? "text-destructive" : "text-slate-900")}>{session.tabSwitchCount || 0}</span>
-                </div>
-                {session.currentVector && (
-                  <div className="p-4 bg-primary/[0.03] rounded-xl border border-primary/10 space-y-3">
-                    <p className="text-[10px] font-black uppercase text-primary/60 tracking-widest">Biometric Indicators</p>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground font-bold">Correction Rate</span>
-                      <span className="font-bold">{session.currentVector.backspaceRate}%</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground font-bold">Syntactic Density</span>
-                      <span className="font-bold">{session.currentVector.avgSentenceLength} W/S</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground font-bold">Vocabulary Level</span>
-                      <span className="font-bold">{session.currentVector.vocabComplexity}/10</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-              <div className="p-6 bg-slate-900 text-white rounded-2xl space-y-4 flex flex-col justify-center">
-                <div className="flex items-center gap-2 mb-2">
-                  <Focus className="w-5 h-5 text-accent" />
-                  <h4 className="text-sm font-bold uppercase tracking-wider">Analysis Summary</h4>
-                </div>
-                <p className="text-sm leading-relaxed opacity-90">
-                  {session.riskScore === 'Normal' 
-                    ? "The student's behavior aligns with established writing baselines. No significant deviations in typing cadence or peripheral activity detected."
-                    : `Multiple behavioral red flags detected. Typing speed fluctuates significantly (${session.typingSpeed || 0} WPM), and ${session.tabSwitchCount || 0} tab switches suggest external research during a restricted module.`}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-6 border-t">
-              <h4 className="font-bold flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-destructive" />
-                Incident Timeline
-              </h4>
-              <ScrollArea className="h-[300px] pr-4">
+        <div className="space-y-6">
+          <Card className="shadow-lg border-none ring-1 ring-slate-200 bg-primary/[0.02] overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                Audit Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[450px] p-6 pt-0">
                 <div className="space-y-4">
                   {session.violations && session.violations.length > 0 ? (
                     session.violations.map((v, i) => (
-                      <div key={i} className="flex gap-4 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
-                        <div className="w-2 h-2 rounded-full bg-destructive mt-1.5 shrink-0" />
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-slate-800">{v}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Logged at {session.lastActive}</p>
-                        </div>
+                      <div key={i} className="flex gap-3 items-start p-3 bg-destructive/[0.02] rounded-lg border border-destructive/10">
+                        <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 shrink-0" />
+                        <span className="text-xs text-slate-600 leading-tight">{v}</span>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground italic bg-green-50 p-4 rounded-xl border border-green-100">No specific violations logged yet. Student maintains a clean session.</p>
+                    <p className="text-xs text-muted-foreground italic bg-green-50 p-3 rounded-lg border border-green-100">
+                      No policy violations recorded.
+                    </p>
                   )}
                 </div>
               </ScrollArea>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="shadow-lg border-primary/20 bg-primary/[0.02]">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                <CardTitle className="text-lg">Policy Context</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-white rounded-xl border space-y-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground uppercase font-bold">Paste Policy</span>
-                  <Badge variant="outline" className={cn(
-                    "uppercase text-[10px]",
-                    assessment?.policy === 'Not Allowed' ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-green-100 text-green-700 border-green-200"
-                  )}>{assessment?.policy}</Badge>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground uppercase font-bold">Tab Monitoring</span>
-                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 uppercase text-[10px]">Active</Badge>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground uppercase font-bold">Biometric Match</span>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 uppercase text-[10px]">Required</Badge>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed italic">
-                This activity is running under **High Integrity** mode. Acuard automatically flags any browser focus loss or non-human typing speed.
-              </p>
             </CardContent>
           </Card>
-
-          <div className="p-6 bg-accent rounded-2xl text-accent-foreground shadow-xl">
-            <h4 className="font-headline font-bold text-lg mb-2">Proctor Advice</h4>
-            <p className="text-sm opacity-90 leading-relaxed">
-              If the human ownership match is low, review the student's keystroke rhythm variance logs for specific anomalies. Gibberish typing or rapid pasting significantly reduces match probability.
-            </p>
-          </div>
         </div>
       </div>
     </div>
