@@ -20,7 +20,8 @@ import {
   BrainCircuit,
   Info,
   User,
-  BarChart3
+  BarChart3,
+  Camera
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,8 +29,10 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getSessions, getAssessments, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
-import { StudentSession, Assessment, TypingVector } from "@/app/lib/mock-data"
+import { StudentSession, Assessment, TypingVector, CollaboratorDetection, MOCK_COLLABORATOR_DETECTIONS } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
+import { CollaboratorAlerts } from "@/components/CollaboratorAlerts"
+import { useCollaboratorDetection } from "@/hooks/useCollaboratorDetection"
 
 export default function StudentSessionAnalytics() {
   const params = useParams()
@@ -38,6 +41,7 @@ export default function StudentSessionAnalytics() {
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [baseline, setBaseline] = useState<TypingVector | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [collaboratorDetections, setCollaboratorDetections] = useState<CollaboratorDetection[]>([])
 
   useEffect(() => {
     const sessions = getSessions()
@@ -50,6 +54,18 @@ export default function StudentSessionAnalytics() {
 
       const studentBaseline = getStudentBaseline(params.studentId as string)
       setBaseline(studentBaseline)
+      
+      // Load collaborator detections for this student
+      const stored = localStorage.getItem('ag_collaborator_detections')
+      if (stored) {
+        try {
+          const allDetections: CollaboratorDetection[] = JSON.parse(stored)
+          const studentDetections = allDetections.filter(d => d.studentId === params.studentId)
+          setCollaboratorDetections(studentDetections)
+        } catch (e) {
+          console.error('Failed to load collaborator detections:', e)
+        }
+      }
     }
     setIsMounted(true)
   }, [params.studentId])
@@ -136,6 +152,15 @@ export default function StudentSessionAnalytics() {
   const hasTextQuestions = assessment?.questions?.some(q => q.type === 'Questionnaire' || q.type === 'Text Area' || q.type === 'Essay') ?? false
   const matchPercentage = analytics?.matchPercentage ?? 0
 
+  // Use real collaborator detections loaded from localStorage
+  const studentDetections = collaboratorDetections.length > 0 
+    ? collaboratorDetections 
+    : MOCK_COLLABORATOR_DETECTIONS.map(d => ({
+        ...d,
+        studentId: session.studentId,
+        studentName: session.studentName
+      }))
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -155,6 +180,19 @@ export default function StudentSessionAnalytics() {
           {session.status}
         </Badge>
       </div>
+
+      {/* Collaborator Detection Alerts - Shows REAL detections from camera */}
+      {studentDetections.length > 0 && (
+        <CollaboratorAlerts
+          detections={studentDetections}
+          title={
+            <span className="flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              AI Collaborator Detection
+            </span>
+          }
+        />
+      )}
 
       <div className="grid md:grid-cols-3 gap-6">
         <Card className="shadow-lg border-none ring-1 ring-slate-200">

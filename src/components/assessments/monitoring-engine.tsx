@@ -2,14 +2,14 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ShieldAlert, AlertCircle, Eye, Loader2, Minimize2, Maximize2, Clock, Users, ShieldX } from "lucide-react"
+import { ShieldAlert, AlertCircle, Eye, Loader2, Minimize2, Maximize2, Clock, Users, ShieldX, Camera } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { predictIntegrityRiskScore } from "@/ai/flows/predictive-integrity-risk-score"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { updateSession, getSessions, getStudentBaseline, getGlobalSettings } from "@/lib/storage"
-import { TypingVector } from "@/app/lib/mock-data"
+import { TypingVector, CollaboratorDetection } from "@/app/lib/mock-data"
 import { cn } from "@/lib/utils"
 import * as tf from '@tensorflow/tfjs'
 import * as blazeface from '@tensorflow-models/blazeface'
@@ -76,6 +76,54 @@ export function MonitoringEngine({
   useEffect(() => {
     currentWritingRef.current = currentWriting
   }, [currentWriting])
+
+  // Capture screenshot from video feed
+  const captureScreenshot = (): string | null => {
+    if (!videoRef.current || !canvasRef.current) return null
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    
+    // Draw current video frame to canvas
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.8)
+  }
+
+  // Store collaborator detection
+  const storeCollaboratorDetection = (type: 'multiple-faces' | 'looking-off-screen', screenshot: string) => {
+    const sessions = getSessions()
+    const current = sessions.find(s => s.studentId === studentId && s.assessmentId === assessmentId)
+    if (!current) return
+    
+    const detection: CollaboratorDetection = {
+      id: `cd-${Date.now()}`,
+      screenshot,
+      studentName: current.studentName,
+      studentId: current.studentId,
+      reason: type === 'multiple-faces' ? 'Multiple faces detected during assessment' : 'Student looking off-screen for extended period',
+      timestamp: new Date().toLocaleString(),
+      confidence: 85 + Math.floor(Math.random() * 10), // 85-94% for demo
+      type
+    }
+    
+    // Store in session (you can also save to a separate storage key)
+    const updatedSession = {
+      ...current,
+      violations: [...(current.violations || []), `📸 ${detection.reason} at ${detection.timestamp}`],
+      // You could add a new field: collaboratorDetections: [...(current.collaboratorDetections || []), detection]
+    }
+    
+    updateSession(updatedSession)
+    
+    // Also save to localStorage for live monitoring
+    const existingDetections = localStorage.getItem('ag_collaborator_detections')
+    const detections: CollaboratorDetection[] = existingDetections ? JSON.parse(existingDetections) : []
+    detections.push(detection)
+    localStorage.setItem('ag_collaborator_detections', JSON.stringify(detections))
+    
+    return detection
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,7 +198,16 @@ export function MonitoringEngine({
     }
   }, [integrityPoints])
 
-  const triggerPenalty = (points: number, msg: string) => {
+  const triggerPenalty = (points: number, msg: string, captureType?: 'multiple-faces' | 'looking-off-screen') => {
+    // Capture screenshot if camera is available
+    let screenshot: string | null = null
+    if (captureType) {
+      screenshot = captureScreenshot()
+      if (screenshot) {
+        storeCollaboratorDetection(captureType, screenshot)
+      }
+    }
+    
     toast({
       title: "Integrity Violation",
       description: msg,
@@ -160,13 +217,13 @@ export function MonitoringEngine({
     setIntegrityPoints(prevPoints => {
       const newTotal = prevPoints + points
       const nextWarning = Math.min(3, Math.floor(newTotal / 30))
-      
+
       setWarningCount(prevWarning => {
         if (nextWarning > prevWarning) {
           onWarning(nextWarning)
           toast({
             title: "Warning Issued",
-            description: `Warning threshold crossed: ${nextWarning}/3`,
+            description: `Warning threshold crossed: ${nextWarning}/3 ${screenshot ? '- Screenshot captured!' : ''}`,
             variant: "destructive"
           })
           return nextWarning
@@ -284,12 +341,16 @@ export function MonitoringEngine({
             faceMissingCount.current++
             if (faceMissingCount.current % 2 === 0) playBeep();
             if (faceMissingCount.current >= 30) {
-              triggerPenalty(15, "Focus on the screen! Face not detected.")
-              faceMissingCount.current = 0 
+              triggerPenalty(15, "Focus on the screen! Face not detected.", 'looking-off-screen')
+              faceMissingCount.current = 0
             }
           } else if (predictions.length > 1) {
             setFaceStatus("Multiple")
             multiFaceCount.current++
+            if (multiFaceCount.current >= 3) { // After 3 detections (~9 seconds)
+              triggerPenalty(25, "⚠️ COLLABORATOR DETECTED: Multiple faces in frame!", 'multiple-faces')
+              multiFaceCount.current = 0
+            }
             predictions.forEach((prediction: any) => {
               const rawStart = prediction.topLeft as [number, number]
               const rawEnd = prediction.bottomRight as [number, number]

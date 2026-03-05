@@ -1,0 +1,76 @@
+## Error Type
+Console Error
+
+## Error Message
+A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload assetPrefix="" globalError={[...]}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/instructo..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en" suppressHydrationWarning={true}>
+                          <head
+-                           data-locator-hook-status-message="loading: No valid renderers found."
+                          >
+                          ...
+                  ...
+
+
+
+    at head (<anonymous>:null:null)
+    at RootLayout (src\app\layout.tsx:17:7)
+
+## Code Frame
+  15 |   return (
+  16 |     <html lang="en" suppressHydrationWarning>
+> 17 |       <head>
+     |       ^
+  18 |         <link rel="preconnect" href="https://fonts.googleapis.com" />
+  19 |         <link
+  20 |           rel="preconnect"
+
+Next.js version: 15.5.9 (Turbopack)
+
+## Error Type
+Runtime ReferenceError
+
+## Error Message
+CardDescription is not defined
+
+
+    at LiveMonitoring (src/app/instructor/monitoring/page.tsx:423:16)
+
+## Code Frame
+  421 |                 Live Proctoring Grid
+  422 |               </CardTitle>
+> 423 |               <CardDescription>
+      |                ^
+  424 |                 Real-time camera feeds from students taking assessments. <Badge variant="outline" className="ml-2">Demo Mode</Badge>
+  425 |               </CardDescription>
+  426 |             </CardHeader>
+
+Next.js version: 15.5.9 (Turbopack)

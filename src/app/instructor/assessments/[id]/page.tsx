@@ -91,9 +91,9 @@ export default function AssessmentDetails() {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" asChild className="gap-2 border-primary text-primary hover:bg-primary/5 font-bold">
-            <Link href={`/instructor/assessments/${assessment.id}/students`}>
-              <Users className="w-4 h-4" />
-              View Submissions
+            <Link href={`/instructor/assessments/${assessment.id}/submissions`}>
+              <FileText className="w-4 h-4" />
+              AI Analysis & Submissions
             </Link>
           </Button>
           <Button asChild className="gap-2 bg-primary">

@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { updateStudentHonestyScore } from "@/lib/honesty-score"
 
 export default function ActiveAssessment() {
   const params = useParams()
@@ -158,13 +159,13 @@ export default function ActiveAssessment() {
 
     let earned = 0
     let total = 0
-    
+
     const questions = assessment?.questions || []
     questions.forEach(q => {
       total += q.points
       const studentAnswer = (answers[q.id] || "").trim().toLowerCase()
       const correctAnswer = (q.correctAnswer || "").trim().toLowerCase()
-      
+
       if (q.type !== 'Essay') {
         if (studentAnswer === correctAnswer && studentAnswer !== "") {
           earned += q.points
@@ -177,6 +178,7 @@ export default function ActiveAssessment() {
     }
 
     if (current) {
+      // Save submitted answers for AI analysis
       updateSession({
         ...current,
         status: 'Completed',
@@ -184,20 +186,17 @@ export default function ActiveAssessment() {
         score: earned,
         totalPossiblePoints: total,
         currentVector: finalVector,
-        typingSpeed: currentWpm
+        typingSpeed: currentWpm,
+        submittedAnswers: { ...answers } // Store answers for similarity detection
       })
     }
 
+    // Update student honesty score based on session performance
     const students = getStudents()
     const student = students.find(s => s.id === studentId)
-    if (student) {
-      const hadNoWarnings = (current?.warningCount || 0) === 0
-      updateStudent({
-        ...student,
-        honestStreak: hadNoWarnings ? (student.honestStreak || 0) + 1 : 0,
-        honestyScore: hadNoWarnings ? Math.min(100, student.honestyScore + 2) : student.honestyScore,
-        totalAssessments: (student.totalAssessments || 0) + 1
-      })
+    if (student && current) {
+      const updatedStudent = updateStudentHonestyScore(student, current)
+      updateStudent(updatedStudent)
     }
 
     setTimeout(() => {
