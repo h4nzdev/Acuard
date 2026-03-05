@@ -43,6 +43,13 @@ export default function HonestyLeaderboard() {
 
   const topThree = students.slice(0, 3)
   const remaining = students.slice(3)
+  
+  // Calculate real metrics
+  const currentUserRank = students.findIndex(s => s.id === currentUserId)
+  const currentUser = students.find(s => s.id === currentUserId)
+  const percentile = students.length > 0 && currentUserRank >= 0
+    ? Math.round(((students.length - currentUserRank) / students.length) * 100) 
+    : 0
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -182,14 +189,32 @@ export default function HonestyLeaderboard() {
             Maintain high standards of integrity to climb the leaderboard. Consistent clean assessments boost your Honesty Score and Streak.
           </p>
         </div>
-        <div className="flex gap-12">
+        <div className="flex gap-8">
+          <div className="text-center">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Honesty Score</p>
+            <p className="text-4xl font-headline font-bold text-primary">
+              {currentUser?.honestyScore || '--'}%
+            </p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Same as dashboard
+            </p>
+          </div>
           <div className="text-center">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Rank</p>
-            <p className="text-4xl font-headline font-bold text-accent">#{students.findIndex(s => s.id === currentUserId) + 1 || '--'}</p>
+            <p className="text-4xl font-headline font-bold text-accent">
+              #{currentUserRank >= 0 ? currentUserRank + 1 : '--'}
+            </p>
           </div>
           <div className="text-center">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Honesty Percentile</p>
-            <p className="text-4xl font-headline font-bold text-green-400">98%</p>
+            <p className="text-4xl font-headline font-bold text-green-400">
+              {percentile > 0 ? `${percentile}%` : '--'}
+            </p>
+            {percentile > 0 && (
+              <p className="text-[10px] text-slate-500 mt-1">
+                Top {100 - percentile}% of students
+              </p>
+            )}
           </div>
         </div>
       </div>
